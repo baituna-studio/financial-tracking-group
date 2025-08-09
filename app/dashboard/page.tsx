@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Wallet, TrendingUp, TrendingDown, Target, Calendar, Download } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, Target, Calendar, Download } from "lucide-react"
 import { MainLayout } from "@/components/layout/main-layout"
-import { formatCurrency, exportToExcel } from "@/lib/utils"
-import { MOCK_BUDGETS, MOCK_EXPENSES, getMockBudgets, getMockExpenses } from "@/lib/mock-auth"
+import { supabase } from "@/lib/supabase"
+import { getCurrentUser, getUserProfile } from "@/lib/auth"
+import { formatCurrency, getMonthRange, getCustomMonthLabel, exportToExcel } from "@/lib/utils"
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [profile, setProfile] = useState<any>(null)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
@@ -23,41 +25,114 @@ export default function DashboardPage() {
     recentExpenses: [] as any[],
   })
 
+  // Generate months with custom labels
+  const months = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const monthsArray = []
+    const monthStartDay = profile?.month_start_day || 1
+
+    // Generate untuk 3 tahun: tahun lalu, tahun ini, tahun depan
+    const startYear = currentYear - 1
+    const endYear = currentYear + 1
+
+    for (let year = startYear; year <= endYear; year++) {
+      for (let month = 1; month <= 12; month++) {
+        const monthValue = `${year}-${String(month).padStart(2, "0")}`
+        const monthLabel = getCustomMonthLabel(year, month, monthStartDay)
+        monthsArray.push({
+          value: monthValue,
+          label: monthLabel,
+          year: year,
+          month: month,
+        })
+      }
+    }
+
+    // Sort dari yang terbaru ke terlama
+    monthsArray.sort((a, b) => {
+      if (a.year !== b.year) {
+        return b.year - a.year
+      }
+      return b.month - a.month
+    })
+
+    return monthsArray
+  }, [profile?.month_start_day])
+
   useEffect(() => {
-    loadDashboardData()
-  }, [selectedMonth])
+    loadUserProfile()
+  }, [])
+
+  useEffect(() => {
+    if (profile) {
+      loadDashboardData()
+    }
+  }, [selectedMonth, profile])
+
+  const loadUserProfile = async () => {
+    try {
+      const user = await getCurrentUser()
+      if (!user) return
+
+      const userProfile = await getUserProfile(user.id)
+      setProfile(userProfile)
+    } catch (error) {
+      console.error("Error loading user profile:", error)
+    }
+  }
 
   const loadDashboardData = async () => {
     setIsLoading(true)
     try {
-      // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 500))
+      const user = await getCurrentUser()
+      if (!user || !profile) return
 
-      const budgets = getMockBudgets()
-      const expenses = getMockExpenses()
+      const [year, month] = selectedMonth.split("-").map(Number)
+      const { start, end } = getMonthRange(year, month, profile.month_start_day || 1)
 
-      const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0)
-      const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0)
+      // User's groups
+      const { data: userGroups, error: ugErr } = await supabase
+        .from("user_groups")
+        .select("group_id")
+        .eq("user_id", user.id)
+      if (ugErr) throw ugErr
+
+      const groupIds = userGroups?.map((ug) => ug.group_id) || []
+
+      // Budgets: treat as single-date entries (start_date inside month)
+      const { data: budgets, error: bErr } = await supabase
+        .from("budgets")
+        .select("amount, start_date, categories(name, color)")
+        .in("group_id", groupIds)
+        .gte("start_date", start)
+        .lte("start_date", end)
+      if (bErr) throw bErr
+
+      const totalBudget = budgets?.reduce((sum, b: any) => sum + (b.amount || 0), 0) || 0
+
+      // Expenses for the month
+      const { data: expenses, error: eErr } = await supabase
+        .from("expenses")
+        .select("amount, title, expense_date, categories(name, color)")
+        .in("group_id", groupIds)
+        .gte("expense_date", start)
+        .lte("expense_date", end)
+        .order("expense_date", { ascending: false })
+      if (eErr) throw eErr
+
+      const totalExpenses = expenses?.reduce((sum, e: any) => sum + (e.amount || 0), 0) || 0
 
       // Group expenses by category
-      const expensesByCategory = expenses.reduce((acc: any[], expense) => {
-        const categoryName = expense.categories?.name || "Lainnya"
-        const categoryColor = expense.categories?.color || "#6B7280"
+      const expensesByCategory =
+        expenses?.reduce((acc: any[], expense: any) => {
+          const categoryName = expense.categories?.name || "Lainnya"
+          const categoryColor = expense.categories?.color || "#6B7280"
+          const existing = acc.find((i) => i.category === categoryName)
+          if (existing) existing.amount += expense.amount
+          else acc.push({ category: categoryName, amount: expense.amount, color: categoryColor })
+          return acc
+        }, []) || []
 
-        const existing = acc.find((item) => item.category === categoryName)
-        if (existing) {
-          existing.amount += expense.amount
-        } else {
-          acc.push({
-            category: categoryName,
-            amount: expense.amount,
-            color: categoryColor,
-          })
-        }
-        return acc
-      }, [])
-
-      // Sort by amount descending
       expensesByCategory.sort((a, b) => b.amount - a.amount)
 
       setDashboardData({
@@ -65,7 +140,7 @@ export default function DashboardPage() {
         totalExpenses,
         remainingBudget: totalBudget - totalExpenses,
         expensesByCategory,
-        recentExpenses: expenses.slice(0, 5),
+        recentExpenses: expenses?.slice(0, 5) || [],
       })
     } catch (error) {
       console.error("Error loading dashboard data:", error)
@@ -75,30 +150,14 @@ export default function DashboardPage() {
   }
 
   const handleExportData = () => {
-    const exportData = dashboardData.recentExpenses.map((expense) => ({
+    const exportData = dashboardData.recentExpenses.map((expense: any) => ({
       Judul: expense.title,
       Kategori: expense.categories?.name || "Lainnya",
       Jumlah: expense.amount,
       Tanggal: expense.expense_date,
     }))
-
     exportToExcel(exportData, `Laporan-Keuangan-${selectedMonth}`)
   }
-
-  const months = [
-    { value: "2024-01", label: "Januari 2024" },
-    { value: "2024-02", label: "Februari 2024" },
-    { value: "2024-03", label: "Maret 2024" },
-    { value: "2024-04", label: "April 2024" },
-    { value: "2024-05", label: "Mei 2024" },
-    { value: "2024-06", label: "Juni 2024" },
-    { value: "2024-07", label: "Juli 2024" },
-    { value: "2024-08", label: "Agustus 2024" },
-    { value: "2024-09", label: "September 2024" },
-    { value: "2024-10", label: "Oktober 2024" },
-    { value: "2024-11", label: "November 2024" },
-    { value: "2024-12", label: "Desember 2024" },
-  ]
 
   if (isLoading) {
     return (
@@ -121,14 +180,14 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-56">
                 <Calendar className="mr-2 h-4 w-4" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                {months.map((month) => (
-                  <SelectItem key={month.value} value={month.value}>
-                    {month.label}
+              <SelectContent className="max-h-60">
+                {months.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -140,7 +199,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -193,9 +252,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Charts and Lists */}
+        {/* Breakdown and recent */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Expenses by Category */}
           <Card>
             <CardHeader>
               <CardTitle>Pengeluaran per Kategori</CardTitle>
@@ -203,8 +261,8 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {dashboardData.expensesByCategory.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
+                {dashboardData.expensesByCategory.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }} />
                       <span className="text-sm font-medium">{item.category}</span>
@@ -219,7 +277,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Expenses */}
           <Card>
             <CardHeader>
               <CardTitle>Pengeluaran Terbaru</CardTitle>
@@ -227,8 +284,8 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {dashboardData.recentExpenses.map((expense, index) => (
-                  <div key={index} className="flex items-center justify-between">
+                {dashboardData.recentExpenses.map((expense: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{expense.title}</p>
                       <p className="text-xs text-gray-500">

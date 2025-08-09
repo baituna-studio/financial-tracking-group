@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Tags, Wallet, Users, Settings, LogOut, Menu, X } from "lucide-react"
+import { LayoutDashboard, Tags, Wallet, Users, Settings, LogOut, Menu, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { signOut, getCurrentUser } from "@/lib/auth"
@@ -33,6 +33,12 @@ export function Sidebar() {
         title: "Berhasil keluar",
         description: "Sampai jumpa lagi!",
       })
+      
+      // Reload page after successful logout
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 1000) // Give time for toast to show
+      
     } catch (error: any) {
       toast({
         title: "Gagal keluar",

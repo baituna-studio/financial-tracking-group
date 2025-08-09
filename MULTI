@@ -1,0 +1,166 @@
+// app/finance/page.tsx
+import React, { useState } from 'react';
+import { Button } from 'components/ui/button';
+import { Plus } from 'lucide-react';
+import { Label } from 'components/ui/label';
+import { Input } from 'components/ui/input';
+
+const FinancePage = () => {
+const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+
+return (
+  <div>
+    {/* Budgets Section */}
+    <div>
+      {/** Check if there are no budgets and display the empty state button */}
+      {!budgets.length && (
+        <div>
+          <p>No budgets found.</p>
+          <Button onClick={() => setIsBudgetModalOpen(true)} variant="outline" className="mt-4">
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Budget
+          </Button>
+        </div>
+      )}
+    </div>
+
+    {/* Expenses Section */}
+    <div>
+      {/** Check if there are no expenses and display the empty state button */}
+      {!expenses.length && (
+        <div>
+          <p>No expenses found.</p>
+          <Button onClick={() => setIsExpenseModalOpen(true)} variant="outline" className="mt-4">
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Pengeluaran
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+);
+};
+
+export default FinancePage;
+
+// components/modals/budget-modal.tsx
+import React, { useState } from 'react';
+import { Modal } from 'components/ui/modal';
+import { Button } from 'components/ui/button';
+import { Label } from 'components/ui/label';
+import { Input } from 'components/ui/input';
+import { addMockBudget } from 'utils/mockData';
+import { MOCK_GROUP } from 'constants/mockData';
+
+const BudgetModal = ({ isOpen, onClose }) => {
+const [formData, setFormData] = useState(new FormData());
+
+const handleSubmit = (e) => {
+  e.preventDefault();
+  const title = formData.get("title") as string;
+  const amount = parseFloat(formData.get("amount") as string);
+  const categoryId = parseInt(formData.get("categoryId") as string);
+  const date = formData.get("date") as string;
+
+  // Add to mock or supabase: set both start_date and end_date to the same chosen date
+  addMockBudget({
+    title,
+    amount,
+    category_id: categoryId,
+    group_id: MOCK_GROUP.id,
+    start_date: date,
+    end_date: date,
+  });
+
+  onClose();
+};
+
+return (
+  <Modal isOpen={isOpen} onClose={onClose}>
+    <form onSubmit={handleSubmit}>
+      <div className="grid gap-2">
+        <Label htmlFor="title">Judul Budget</Label>
+        <Input id="title" name="title" type="text" required />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="amount">Jumlah</Label>
+        <Input id="amount" name="amount" type="number" required />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="categoryId">Kategori</Label>
+        <Input id="categoryId" name="categoryId" type="number" required />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="date">Tanggal</Label>
+        <Input id="date" name="date" type="date" required />
+      </div>
+      <Button type="submit" variant="default">
+        Tambah Budget
+      </Button>
+    </form>
+  </Modal>
+);
+};
+
+export default BudgetModal;
+
+// components/modals/expense-modal.tsx
+import React, { useState } from 'react';
+import { Modal } from 'components/ui/modal';
+import { Button } from 'components/ui/button';
+import { Label } from 'components/ui/label';
+import { Input } from 'components/ui/input';
+import { addMockExpense } from 'utils/mockData';
+import { MOCK_GROUP } from 'constants/mockData';
+
+const ExpenseModal = ({ isOpen, onClose }) => {
+const [formData, setFormData] = useState(new FormData());
+
+const handleSubmit = (e) => {
+  e.preventDefault();
+  const title = formData.get("title") as string;
+  const amount = parseFloat(formData.get("amount") as string);
+  const categoryId = parseInt(formData.get("categoryId") as string);
+  const date = formData.get("expenseDate") as string;
+
+  // Add to mock or supabase
+  addMockExpense({
+    title,
+    amount,
+    category_id: categoryId,
+    group_id: MOCK_GROUP.id,
+    date: date,
+  });
+
+  onClose();
+};
+
+return (
+  <Modal isOpen={isOpen} onClose={onClose}>
+    <form onSubmit={handleSubmit}>
+      <div className="grid gap-2">
+        <Label htmlFor="title">Judul Pengeluaran</Label>
+        <Input id="title" name="title" type="text" required />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="amount">Jumlah</Label>
+        <Input id="amount" name="amount" type="number" required />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="categoryId">Kategori</Label>
+        <Input id="categoryId" name="categoryId" type="number" required />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="expenseDate">Tanggal</Label>
+        <Input id="expenseDate" name="expenseDate" type="date" required />
+      </div>
+      <Button type="submit" variant="default">
+        Tambah Pengeluaran
+      </Button>
+    </form>
+  </Modal>
+);
+};
+
+export default ExpenseModal;

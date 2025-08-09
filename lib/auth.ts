@@ -1,57 +1,61 @@
 import type { User } from "@supabase/supabase-js"
-import { MOCK_USER, MOCK_PROFILE } from "./mock-auth"
-
-// Mock authentication - bypass Supabase for demo
-const USE_MOCK_AUTH = true
+import { supabase } from "./supabase"
+import { createDefaultGroup } from "./database-setup"
 
 export async function signUp(email: string, password: string, fullName: string) {
-  if (USE_MOCK_AUTH) {
-    // Simulate successful signup
-    return { user: MOCK_USER, session: null }
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: fullName },
+    },
+  })
+  if (error) throw error
+
+  // Create profile and default setup after sign up
+  if (data.user) {
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: data.user.id,
+      email: data.user.email!,
+      full_name: fullName,
+    })
+    if (profileError) throw profileError
+
+    // Create default group and categories (best-effort)
+    try {
+      await createDefaultGroup(data.user.id, data.user.email!)
+    } catch (e) {
+      console.warn("Default setup error:", e)
+    }
   }
-  
-  // Original Supabase code would go here
-  throw new Error("Supabase signup not implemented in mock mode")
+  return data
 }
 
 export async function signIn(email: string, password: string) {
-  if (USE_MOCK_AUTH) {
-    // Accept any login for demo purposes, but prefer the demo credentials
-    if (email === "ricky@gmail.com" && password === "ricky@gmail.com") {
-      return { user: MOCK_USER, session: { access_token: "mock-token" } }
-    }
-    // For demo, accept any credentials
-    return { user: MOCK_USER, session: { access_token: "mock-token" } }
-  }
-  
-  // Original Supabase code would go here
-  throw new Error("Supabase signin not implemented in mock mode")
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  return data
 }
 
 export async function signOut() {
-  if (USE_MOCK_AUTH) {
-    // Simulate successful signout
-    return
-  }
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
   
-  // Original Supabase code would go here
-  throw new Error("Supabase signout not implemented in mock mode")
+  // Clear any local storage or session data if needed
+  if (typeof window !== 'undefined') {
+    localStorage.clear()
+    sessionStorage.clear()
+  }
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  if (USE_MOCK_AUTH) {
-    return MOCK_USER as User
-  }
-  
-  // Original Supabase code would go here
-  return null
+  const { data, error } = await supabase.auth.getUser()
+  if (error) return null
+  return data.user
 }
 
 export async function getUserProfile(userId: string) {
-  if (USE_MOCK_AUTH) {
-    return MOCK_PROFILE
-  }
-  
-  // Original Supabase code would go here
-  throw new Error("Supabase getUserProfile not implemented in mock mode")
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
+  if (error) throw error
+  return data
 }

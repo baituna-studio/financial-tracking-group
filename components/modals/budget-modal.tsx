@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { CurrencyInput } from "@/components/form/currency-input"
 import {
   Dialog,
   DialogContent,
@@ -13,8 +14,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { supabase } from "@/lib/supabase"
+import { getCurrentUser } from "@/lib/auth"
 import { toast } from "@/hooks/use-toast"
-import { MOCK_CATEGORIES, MOCK_GROUP, addMockBudget } from "@/lib/mock-auth"
 
 interface BudgetModalProps {
   isOpen: boolean
@@ -24,39 +26,62 @@ interface BudgetModalProps {
 
 export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [categories, setCategories] = useState<any[]>([])
+  const [groups, setGroups] = useState<any[]>([])
+
+  useEffect(() => {
+    if (isOpen) loadData()
+  }, [isOpen])
+
+  const loadData = async () => {
+    try {
+      const user = await getCurrentUser()
+      if (!user) return
+
+      const { data: userGroups } = await supabase
+        .from("user_groups")
+        .select("group_id, groups(*)")
+        .eq("user_id", user.id)
+
+      if (userGroups) {
+        setGroups(userGroups.map((ug) => ug.groups).filter(Boolean))
+      }
+
+      const { data: categoriesData } = await supabase.from("categories").select("*")
+      if (categoriesData) setCategories(categoriesData)
+    } catch (e) {
+      console.error("Error loading data:", e)
+    }
+  }
 
   const handleSubmit = async (formData: FormData) => {
     setIsLoading(true)
     try {
+      const user = await getCurrentUser()
+      if (!user) throw new Error("User not authenticated")
+
       const title = formData.get("title") as string
       const amount = Number.parseFloat(formData.get("amount") as string)
       const categoryId = formData.get("categoryId") as string
-      const startDate = formData.get("startDate") as string
-      const endDate = formData.get("endDate") as string
+      const groupId = formData.get("groupId") as string
+      const date = formData.get("date") as string
 
-      // Add to mock data
-      addMockBudget({
+      const { error } = await supabase.from("budgets").insert({
         title,
         amount,
         category_id: categoryId,
-        group_id: MOCK_GROUP.id,
-        start_date: startDate,
-        end_date: endDate,
+        group_id: groupId,
+        start_date: date,
+        end_date: date,
+        created_by: user.id,
       })
+      if (error) throw error
 
-      toast({
-        title: "Budget berhasil ditambahkan",
-        description: "Budget baru telah disimpan.",
-      })
-
+      toast({ title: "Budget berhasil ditambahkan", description: "Budget baru telah disimpan." })
       onSuccess()
       onClose()
     } catch (error: any) {
-      toast({
-        title: "Gagal menambahkan budget",
-        description: error.message,
-        variant: "destructive",
-      })
+      toast({ title: "Gagal menambahkan budget", description: error.message, variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -77,7 +102,22 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="amount">Jumlah (Rp)</Label>
-              <Input id="amount" name="amount" type="number" placeholder="1000000" required />
+              <CurrencyInput id="amount" name="amount" placeholder="1.000.000" required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="groupId">Grup</Label>
+              <Select name="groupId" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih grup" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="categoryId">Kategori</Label>
@@ -86,7 +126,7 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
                   <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MOCK_CATEGORIES.map((category) => (
+                  {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
@@ -94,15 +134,9 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="startDate">Tanggal Mulai</Label>
-                <Input id="startDate" name="startDate" type="date" required />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="endDate">Tanggal Selesai</Label>
-                <Input id="endDate" name="endDate" type="date" required />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="date">Tanggal</Label>
+              <Input id="date" name="date" type="date" required />
             </div>
           </div>
           <DialogFooter>

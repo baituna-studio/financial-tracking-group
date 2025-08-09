@@ -22,14 +22,52 @@ export function formatDate(date: string | Date): string {
   }).format(new Date(date))
 }
 
-export function getMonthRange(year: number, month: number) {
-  const startDate = new Date(year, month - 1, 1)
-  const endDate = new Date(year, month, 0)
+export function getMonthRange(year: number, month: number, monthStartDay = 1) {
+  let startDate: Date
+  let endDate: Date
+
+  if (monthStartDay === 1) {
+    // Default behavior - bulan kalender normal
+    startDate = new Date(year, month - 1, 1)
+    endDate = new Date(year, month, 0) // Last day of the month
+  } else {
+    // Custom month start day
+    // Bulan dimulai dari monthStartDay bulan sebelumnya
+    const prevMonth = month === 1 ? 12 : month - 1
+    const prevYear = month === 1 ? year - 1 : year
+
+    startDate = new Date(prevYear, prevMonth - 1, monthStartDay)
+
+    // Bulan berakhir di (monthStartDay - 1) bulan ini
+    endDate = new Date(year, month - 1, monthStartDay - 1)
+  }
 
   return {
     start: startDate.toISOString().split("T")[0],
     end: endDate.toISOString().split("T")[0],
   }
+}
+
+export function getCustomMonthLabel(year: number, month: number, monthStartDay = 1): string {
+  if (monthStartDay === 1) {
+    // Default behavior
+    return new Date(year, month - 1, 1).toLocaleString("id-ID", {
+      year: "numeric",
+      month: "long",
+    })
+  }
+
+  // Custom month label
+  const prevMonth = month === 1 ? 12 : month - 1
+  const prevYear = month === 1 ? year - 1 : year
+
+  const startDate = new Date(prevYear, prevMonth - 1, monthStartDay)
+  const endDate = new Date(year, month - 1, monthStartDay - 1)
+
+  const startLabel = startDate.toLocaleString("id-ID", { day: "numeric", month: "short" })
+  const endLabel = endDate.toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+
+  return `${startLabel} - ${endLabel}`
 }
 
 export function exportToExcel(data: any[], filename: string) {

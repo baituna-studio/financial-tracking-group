@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { User, Bell, Shield, Database } from "lucide-react"
+import { User, Bell, Shield, Database, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MainLayout } from "@/components/layout/main-layout"
 import { getCurrentUser, getUserProfile } from "@/lib/auth"
 import { supabase } from "@/lib/supabase"
@@ -73,6 +74,39 @@ export default function SettingsPage() {
     }
   }
 
+  const handleUpdateMonthSetting = async (formData: FormData) => {
+    setIsSaving(true)
+    try {
+      const monthStartDay = Number.parseInt(formData.get("monthStartDay") as string)
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          month_start_day: monthStartDay,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (error) throw error
+
+      toast({
+        title: "Pengaturan bulan berhasil diperbarui",
+        description: "Perubahan akan diterapkan pada filter bulan di Dashboard dan Keuangan.",
+      })
+
+      // Reload profile data
+      await loadUserData()
+    } catch (error: any) {
+      toast({
+        title: "Gagal memperbarui pengaturan bulan",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -120,6 +154,46 @@ export default function SettingsPage() {
               </div>
               <Button type="submit" disabled={isSaving}>
                 {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Month Settings */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              <CardTitle>Pengaturan Bulan</CardTitle>
+            </div>
+            <CardDescription>Atur tanggal mulai bulan untuk filter di Dashboard dan Keuangan</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={handleUpdateMonthSetting} className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="monthStartDay">Bulan Dimulai Tanggal</Label>
+                <Select name="monthStartDay" defaultValue={String(profile?.month_start_day || 1)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih tanggal" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <SelectItem key={day} value={String(day)}>
+                        Tanggal {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
+                  <p className="font-medium mb-1">Contoh:</p>
+                  <p>• Jika diset tanggal 25: "Agustus 2025" akan dimulai dari 25 Juli 2025 - 24 Agustus 2025</p>
+                  <p>
+                    • Jika diset tanggal 1: "Agustus 2025" akan dimulai dari 1 Agustus 2025 - 31 Agustus 2025 (normal)
+                  </p>
+                </div>
+              </div>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "Menyimpan..." : "Simpan Pengaturan"}
               </Button>
             </form>
           </CardContent>

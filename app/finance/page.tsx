@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Plus, Download, Calendar } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Plus, Download, Calendar, Trash2, Eye, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,13 +10,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MainLayout } from "@/components/layout/main-layout"
 import { BudgetModal } from "@/components/modals/budget-modal"
 import { ExpenseModal } from "@/components/modals/expense-modal"
+import { BudgetViewModal } from "@/components/modals/budget-view-modal"
+import { BudgetEditModal } from "@/components/modals/budget-edit-modal"
+import { ExpenseViewModal } from "@/components/modals/expense-view-modal"
+import { ExpenseEditModal } from "@/components/modals/expense-edit-modal"
 import { supabase } from "@/lib/supabase"
-import { getCurrentUser } from "@/lib/auth"
-import { formatCurrency, formatDate, getMonthRange, exportToExcel } from "@/lib/utils"
+import { getCurrentUser, getUserProfile } from "@/lib/auth"
+import { formatCurrency, formatDate, getMonthRange, getCustomMonthLabel, exportToExcel } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function FinancePage() {
   const [budgets, setBudgets] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
+  const [profile, setProfile] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false)
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
@@ -24,26 +40,86 @@ export default function FinancePage() {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
   })
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const [viewBudget, setViewBudget] = useState<any | null>(null)
+  const [editBudget, setEditBudget] = useState<any | null>(null)
+  const [viewExpense, setViewExpense] = useState<any | null>(null)
+  const [editExpense, setEditExpense] = useState<any | null>(null)
+
+  const [pendingDeleteBudget, setPendingDeleteBudget] = useState<any | null>(null)
+  const [pendingDeleteExpense, setPendingDeleteExpense] = useState<any | null>(null)
+
+  // Generate months with custom labels
+  const months = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const monthsArray = []
+    const monthStartDay = profile?.month_start_day || 1
+
+    // Generate untuk 3 tahun: tahun lalu, tahun ini, tahun depan
+    const startYear = currentYear - 1
+    const endYear = currentYear + 1
+
+    for (let year = startYear; year <= endYear; year++) {
+      for (let month = 1; month <= 12; month++) {
+        const monthValue = `${year}-${String(month).padStart(2, "0")}`
+        const monthLabel = getCustomMonthLabel(year, month, monthStartDay)
+        monthsArray.push({
+          value: monthValue,
+          label: monthLabel,
+          year: year,
+          month: month,
+        })
+      }
+    }
+
+    // Sort dari yang terbaru ke terlama
+    monthsArray.sort((a, b) => {
+      if (a.year !== b.year) {
+        return b.year - a.year
+      }
+      return b.month - a.month
+    })
+
+    return monthsArray
+  }, [profile?.month_start_day])
 
   useEffect(() => {
-    loadFinanceData()
-  }, [selectedMonth])
+    loadUserProfile()
+  }, [])
+
+  useEffect(() => {
+    if (profile) {
+      loadFinanceData()
+    }
+  }, [selectedMonth, profile])
+
+  const loadUserProfile = async () => {
+    try {
+      const user = await getCurrentUser()
+      if (!user) return
+
+      const userProfile = await getUserProfile(user.id)
+      setProfile(userProfile)
+    } catch (error) {
+      console.error("Error loading user profile:", error)
+    }
+  }
 
   const loadFinanceData = async () => {
     setIsLoading(true)
     try {
       const user = await getCurrentUser()
-      if (!user) return
+      if (!user || !profile) return
 
       const [year, month] = selectedMonth.split("-").map(Number)
-      const { start, end } = getMonthRange(year, month)
+      const { start, end } = getMonthRange(year, month, profile.month_start_day || 1)
 
-      // Get user's groups
+      console.log(`Fetching data for month: ${selectedMonth}, Range: ${start} to ${end}`) // Debugging log
+
       const { data: userGroups } = await supabase.from("user_groups").select("group_id").eq("user_id", user.id)
-
       const groupIds = userGroups?.map((ug) => ug.group_id) || []
 
-      // Load budgets
       const { data: budgetsData } = await supabase
         .from("budgets")
         .select(`
@@ -52,11 +128,10 @@ export default function FinancePage() {
           groups(name)
         `)
         .in("group_id", groupIds)
+        .gte("start_date", start)
         .lte("start_date", end)
-        .gte("end_date", start)
         .order("created_at", { ascending: false })
 
-      // Load expenses
       const { data: expensesData } = await supabase
         .from("expenses")
         .select(`
@@ -74,6 +149,7 @@ export default function FinancePage() {
       setExpenses(expensesData || [])
     } catch (error) {
       console.error("Error loading finance data:", error)
+      toast({ title: "Gagal memuat data", description: "Silakan coba lagi.", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -93,20 +169,53 @@ export default function FinancePage() {
     exportToExcel(exportData, `Pengeluaran-${selectedMonth}`)
   }
 
-  const months = [
-    { value: "2024-01", label: "Januari 2024" },
-    { value: "2024-02", label: "Februari 2024" },
-    { value: "2024-03", label: "Maret 2024" },
-    { value: "2024-04", label: "April 2024" },
-    { value: "2024-05", label: "Mei 2024" },
-    { value: "2024-06", label: "Juni 2024" },
-    { value: "2024-07", label: "Juli 2024" },
-    { value: "2024-08", label: "Agustus 2024" },
-    { value: "2024-09", label: "September 2024" },
-    { value: "2024-10", label: "Oktober 2024" },
-    { value: "2024-11", label: "November 2024" },
-    { value: "2024-12", label: "Desember 2024" },
-  ]
+  const doDeleteBudget = async (id: string) => {
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/budgets/${id}`, { method: "DELETE" })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Gagal menghapus budget")
+      }
+      toast({ title: "Budget dihapus", description: "Budget telah berhasil dihapus." })
+      await loadFinanceData()
+    } catch (e: any) {
+      toast({ title: "Gagal menghapus budget", description: e?.message || "Terjadi kesalahan", variant: "destructive" })
+    } finally {
+      setDeletingId(null)
+      setPendingDeleteBudget(null)
+    }
+  }
+
+  const handleDeleteBudget = (budget: any) => {
+    setPendingDeleteBudget(budget)
+  }
+
+  const doDeleteExpense = async (id: string) => {
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Gagal menghapus pengeluaran")
+      }
+      toast({ title: "Pengeluaran dihapus", description: "Pengeluaran telah berhasil dihapus." })
+      await loadFinanceData()
+    } catch (e: any) {
+      toast({
+        title: "Gagal menghapus pengeluaran",
+        description: e?.message || "Terjadi kesalahan",
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingId(null)
+      setPendingDeleteExpense(null)
+    }
+  }
+
+  const handleDeleteExpense = (expense: any) => {
+    setPendingDeleteExpense(expense)
+  }
 
   if (isLoading) {
     return (
@@ -129,11 +238,11 @@ export default function FinancePage() {
           </div>
           <div className="flex items-center gap-3">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-56">
                 <Calendar className="mr-2 h-4 w-4" />
-                <SelectValue />
+                <SelectValue placeholder="Pilih bulan" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60">
                 {months.map((month) => (
                   <SelectItem key={month.value} value={month.value}>
                     {month.label}
@@ -186,8 +295,37 @@ export default function FinancePage() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-lg">{formatCurrency(budget.amount)}</p>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <p className="font-semibold text-lg hidden sm:block">{formatCurrency(budget.amount)}</p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setViewBudget(budget)}
+                        aria-label="Lihat budget"
+                        title="Lihat budget"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditBudget(budget)}
+                        aria-label="Edit budget"
+                        title="Edit budget"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-600"
+                        onClick={() => handleDeleteBudget(budget)}
+                        disabled={deletingId === budget.id}
+                        aria-label="Hapus budget"
+                        title="Hapus budget"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -197,7 +335,7 @@ export default function FinancePage() {
                 <p className="text-gray-500">Belum ada budget untuk bulan ini</p>
                 <Button onClick={() => setIsBudgetModalOpen(true)} variant="outline" className="mt-4">
                   <Plus className="mr-2 h-4 w-4" />
-                  Tambah Budget Pertama
+                  Tambah Budget
                 </Button>
               </div>
             )}
@@ -221,6 +359,7 @@ export default function FinancePage() {
                       <TableHead>Kategori</TableHead>
                       <TableHead>Grup</TableHead>
                       <TableHead className="text-right">Jumlah</TableHead>
+                      <TableHead className="w-28 text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -248,6 +387,39 @@ export default function FinancePage() {
                         <TableCell className="text-right font-semibold text-red-600">
                           {formatCurrency(expense.amount)}
                         </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setViewExpense(expense)}
+                              aria-label="Lihat pengeluaran"
+                              title="Lihat pengeluaran"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditExpense(expense)}
+                              aria-label="Edit pengeluaran"
+                              title="Edit pengeluaran"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600"
+                              onClick={() => handleDeleteExpense(expense)}
+                              disabled={deletingId === expense.id}
+                              aria-label="Hapus pengeluaran"
+                              title="Hapus pengeluaran"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -258,14 +430,14 @@ export default function FinancePage() {
                 <p className="text-gray-500">Belum ada pengeluaran untuk bulan ini</p>
                 <Button onClick={() => setIsExpenseModalOpen(true)} variant="outline" className="mt-4">
                   <Plus className="mr-2 h-4 w-4" />
-                  Tambah Pengeluaran Pertama
+                  Tambah Pengeluaran
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Modals */}
+        {/* Create Modals */}
         <BudgetModal
           isOpen={isBudgetModalOpen}
           onClose={() => setIsBudgetModalOpen(false)}
@@ -276,6 +448,63 @@ export default function FinancePage() {
           onClose={() => setIsExpenseModalOpen(false)}
           onSuccess={loadFinanceData}
         />
+
+        {/* View/Edit Modals */}
+        <BudgetViewModal isOpen={!!viewBudget} onClose={() => setViewBudget(null)} budget={viewBudget} />
+        <BudgetEditModal
+          isOpen={!!editBudget}
+          onClose={() => setEditBudget(null)}
+          onSuccess={loadFinanceData}
+          budget={editBudget}
+        />
+        <ExpenseViewModal isOpen={!!viewExpense} onClose={() => setViewExpense(null)} expense={viewExpense} />
+        <ExpenseEditModal
+          isOpen={!!editExpense}
+          onClose={() => setEditExpense(null)}
+          onSuccess={loadFinanceData}
+          expense={editExpense}
+        />
+        <AlertDialog open={!!pendingDeleteBudget} onOpenChange={(open) => !open && setPendingDeleteBudget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Budget?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus budget "{pendingDeleteBudget?.title}"? Tindakan ini tidak dapat
+                dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingDeleteBudget(null)}>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => pendingDeleteBudget && doDeleteBudget(pendingDeleteBudget.id)}
+                disabled={deletingId === pendingDeleteBudget?.id}
+              >
+                {deletingId === pendingDeleteBudget?.id ? "Menghapus..." : "Hapus"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!pendingDeleteExpense} onOpenChange={(open) => !open && setPendingDeleteExpense(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus pengeluaran "{pendingDeleteExpense?.title}"? Tindakan ini tidak dapat
+                dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingDeleteExpense(null)}>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => pendingDeleteExpense && doDeleteExpense(pendingDeleteExpense.id)}
+                disabled={deletingId === pendingDeleteExpense?.id}
+              >
+                {deletingId === pendingDeleteExpense?.id ? "Menghapus..." : "Hapus"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   )
