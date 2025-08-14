@@ -5,7 +5,6 @@ export async function GET() {
   try {
     const supabaseAdmin = getSupabaseAdmin();
 
-    const targetEmails = ['rochiyat@gmail.com', 'baituna.studio@gmail.com'];
     const results: any[] = [];
 
     // Check auth.users
@@ -13,6 +12,8 @@ export async function GET() {
       supabaseAdmin as any
     ).auth.admin.listUsers();
     if (authError) throw authError;
+
+    const targetEmails = ['rochiyat@gmail.com', 'baituna.studio@gmail.com'];
 
     for (const email of targetEmails) {
       const authUser = authUsers.users?.find((u: any) => u.email === email);
@@ -81,6 +82,36 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Check users error:', error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error?.message || 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    console.log('Update/Create profile request:', request);
+    const body = await request.json();
+    const { id, full_name, email, month_start_day, updated_at } = body;
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data, error } = await supabaseAdmin.from('profiles').upsert({
+      id,
+      full_name,
+      email,
+      month_start_day,
+      updated_at,
+    });
+    return NextResponse.json({
+      ok: true,
+      data,
+      error,
+    });
+  } catch (error: any) {
+    console.error('Update/Create profile error:', error);
     return NextResponse.json(
       {
         ok: false,

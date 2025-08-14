@@ -1,23 +1,48 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useMemo } from "react"
-import { Plus, Download, Calendar, Trash2, Eye, Pencil } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MainLayout } from "@/components/layout/main-layout"
-import { BudgetModal } from "@/components/modals/budget-modal"
-import { ExpenseModal } from "@/components/modals/expense-modal"
-import { BudgetViewModal } from "@/components/modals/budget-view-modal"
-import { BudgetEditModal } from "@/components/modals/budget-edit-modal"
-import { ExpenseViewModal } from "@/components/modals/expense-view-modal"
-import { ExpenseEditModal } from "@/components/modals/expense-edit-modal"
-import { supabase } from "@/lib/supabase"
-import { getCurrentUser, getUserProfile } from "@/lib/auth"
-import { formatCurrency, formatDate, getMonthRange, getCustomMonthLabel, exportToExcel } from "@/lib/utils"
-import { toast } from "@/hooks/use-toast"
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Download, Calendar, Trash2, Eye, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { MainLayout } from '@/components/layout/main-layout';
+import { BudgetModal } from '@/components/modals/budget-modal';
+import { ExpenseModal } from '@/components/modals/expense-modal';
+import { BudgetViewModal } from '@/components/modals/budget-view-modal';
+import { BudgetEditModal } from '@/components/modals/budget-edit-modal';
+import { ExpenseViewModal } from '@/components/modals/expense-view-modal';
+import { ExpenseEditModal } from '@/components/modals/expense-edit-modal';
+import { supabase } from '@/lib/supabase';
+import { getCurrentUser, getUserProfile } from '@/lib/auth';
+import {
+  formatCurrency,
+  formatDate,
+  getMonthRange,
+  getCustomMonthLabel,
+  exportToExcel,
+} from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,195 +52,229 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog';
 
 export default function FinancePage() {
-  const [budgets, setBudgets] = useState<any[]>([])
-  const [expenses, setExpenses] = useState<any[]>([])
-  const [profile, setProfile] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false)
-  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
+  const [budgets, setBudgets] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  })
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      '0'
+    )}`;
+  });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const [viewBudget, setViewBudget] = useState<any | null>(null)
-  const [editBudget, setEditBudget] = useState<any | null>(null)
-  const [viewExpense, setViewExpense] = useState<any | null>(null)
-  const [editExpense, setEditExpense] = useState<any | null>(null)
+  const [viewBudget, setViewBudget] = useState<any | null>(null);
+  const [editBudget, setEditBudget] = useState<any | null>(null);
+  const [viewExpense, setViewExpense] = useState<any | null>(null);
+  const [editExpense, setEditExpense] = useState<any | null>(null);
 
-  const [pendingDeleteBudget, setPendingDeleteBudget] = useState<any | null>(null)
-  const [pendingDeleteExpense, setPendingDeleteExpense] = useState<any | null>(null)
+  const [pendingDeleteBudget, setPendingDeleteBudget] = useState<any | null>(
+    null
+  );
+  const [pendingDeleteExpense, setPendingDeleteExpense] = useState<any | null>(
+    null
+  );
 
   // Generate months with custom labels
   const months = useMemo(() => {
-    const currentYear = new Date().getFullYear()
-    const monthsArray = []
-    const monthStartDay = profile?.month_start_day || 1
+    const currentYear = new Date().getFullYear();
+    const monthsArray = [];
+    const monthStartDay = profile?.month_start_day || 1;
 
     // Generate untuk 3 tahun: tahun lalu, tahun ini, tahun depan
-    const startYear = currentYear - 1
-    const endYear = currentYear + 1
+    const startYear = currentYear - 1;
+    const endYear = currentYear + 1;
 
     for (let year = startYear; year <= endYear; year++) {
       for (let month = 1; month <= 12; month++) {
-        const monthValue = `${year}-${String(month).padStart(2, "0")}`
-        const monthLabel = getCustomMonthLabel(year, month, monthStartDay)
+        const monthValue = `${year}-${String(month).padStart(2, '0')}`;
+        const monthLabel = getCustomMonthLabel(year, month, monthStartDay);
         monthsArray.push({
           value: monthValue,
           label: monthLabel,
           year: year,
           month: month,
-        })
+        });
       }
     }
 
     // Sort dari yang terbaru ke terlama
     monthsArray.sort((a, b) => {
       if (a.year !== b.year) {
-        return b.year - a.year
+        return b.year - a.year;
       }
-      return b.month - a.month
-    })
+      return b.month - a.month;
+    });
 
-    return monthsArray
-  }, [profile?.month_start_day])
+    return monthsArray;
+  }, [profile?.month_start_day]);
 
   useEffect(() => {
-    loadUserProfile()
-  }, [])
+    loadUserProfile();
+  }, []);
 
   useEffect(() => {
     if (profile) {
-      loadFinanceData()
+      loadFinanceData();
     }
-  }, [selectedMonth, profile])
+  }, [selectedMonth, profile]);
 
   const loadUserProfile = async () => {
     try {
-      const user = await getCurrentUser()
-      if (!user) return
+      const user = await getCurrentUser();
+      if (!user) return;
 
-      const userProfile = await getUserProfile(user.id)
-      setProfile(userProfile)
+      const userProfile = await getUserProfile(user.id);
+      setProfile(userProfile);
     } catch (error) {
-      console.error("Error loading user profile:", error)
+      console.error('Error loading user profile:', error);
     }
-  }
+  };
 
   const loadFinanceData = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const user = await getCurrentUser()
-      if (!user || !profile) return
+      const user = await getCurrentUser();
+      if (!user || !profile) return;
 
-      const [year, month] = selectedMonth.split("-").map(Number)
-      const { start, end } = getMonthRange(year, month, profile.month_start_day || 1)
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const { start, end } = getMonthRange(
+        year,
+        month,
+        profile.month_start_day || 1
+      );
 
-      console.log(`Fetching data for month: ${selectedMonth}, Range: ${start} to ${end}`) // Debugging log
+      console.log(
+        `Fetching data for month: ${selectedMonth}, Range: ${start} to ${end}`
+      ); // Debugging log
 
-      const { data: userGroups } = await supabase.from("user_groups").select("group_id").eq("user_id", user.id)
-      const groupIds = userGroups?.map((ug) => ug.group_id) || []
+      const { data: userGroups } = await supabase
+        .from('user_groups')
+        .select('group_id')
+        .eq('user_id', user.id);
+      const groupIds = userGroups?.map((ug) => ug.group_id) || [];
 
       const { data: budgetsData } = await supabase
-        .from("budgets")
-        .select(`
+        .from('budgets')
+        .select(
+          `
           *,
           categories(name, color),
           groups(name)
-        `)
-        .in("group_id", groupIds)
-        .gte("start_date", start)
-        .lte("start_date", end)
-        .order("created_at", { ascending: false })
+        `
+        )
+        .in('group_id', groupIds)
+        .gte('start_date', start)
+        .lte('start_date', end)
+        .order('created_at', { ascending: false });
 
       const { data: expensesData } = await supabase
-        .from("expenses")
-        .select(`
+        .from('expenses')
+        .select(
+          `
           *,
           categories(name, color),
           groups(name),
           profiles(full_name)
-        `)
-        .in("group_id", groupIds)
-        .gte("expense_date", start)
-        .lte("expense_date", end)
-        .order("expense_date", { ascending: false })
+        `
+        )
+        .in('group_id', groupIds)
+        .gte('expense_date', start)
+        .lte('expense_date', end)
+        .order('expense_date', { ascending: false });
 
-      setBudgets(budgetsData || [])
-      setExpenses(expensesData || [])
+      setBudgets(budgetsData || []);
+      setExpenses(expensesData || []);
     } catch (error) {
-      console.error("Error loading finance data:", error)
-      toast({ title: "Gagal memuat data", description: "Silakan coba lagi.", variant: "destructive" })
+      console.error('Error loading finance data:', error);
+      toast({
+        title: 'Gagal memuat data',
+        description: 'Silakan coba lagi.',
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleExportExpenses = () => {
     const exportData = expenses.map((expense) => ({
       Tanggal: expense.expense_date,
       Judul: expense.title,
-      Deskripsi: expense.description || "",
-      Kategori: expense.categories?.name || "Lainnya",
-      Grup: expense.groups?.name || "",
+      Deskripsi: expense.description || '',
+      Kategori: expense.categories?.name || 'Lainnya',
+      Grup: expense.groups?.name || '',
       Jumlah: expense.amount,
-      "Dibuat oleh": expense.profiles?.full_name || "",
-    }))
+      'Dibuat oleh': expense.profiles?.full_name || '',
+    }));
 
-    exportToExcel(exportData, `Pengeluaran-${selectedMonth}`)
-  }
+    exportToExcel(exportData, `Pengeluaran-${selectedMonth}`);
+  };
 
   const doDeleteBudget = async (id: string) => {
-    setDeletingId(id)
+    setDeletingId(id);
     try {
-      const res = await fetch(`/api/budgets/${id}`, { method: "DELETE" })
-      const data = await res.json()
+      const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE' });
+      const data = await res.json();
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Gagal menghapus budget")
+        throw new Error(data.error || 'Gagal menghapus budget');
       }
-      toast({ title: "Budget dihapus", description: "Budget telah berhasil dihapus." })
-      await loadFinanceData()
-    } catch (e: any) {
-      toast({ title: "Gagal menghapus budget", description: e?.message || "Terjadi kesalahan", variant: "destructive" })
-    } finally {
-      setDeletingId(null)
-      setPendingDeleteBudget(null)
-    }
-  }
-
-  const handleDeleteBudget = (budget: any) => {
-    setPendingDeleteBudget(budget)
-  }
-
-  const doDeleteExpense = async (id: string) => {
-    setDeletingId(id)
-    try {
-      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" })
-      const data = await res.json()
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Gagal menghapus pengeluaran")
-      }
-      toast({ title: "Pengeluaran dihapus", description: "Pengeluaran telah berhasil dihapus." })
-      await loadFinanceData()
+      toast({
+        title: 'Budget dihapus',
+        description: 'Budget telah berhasil dihapus.',
+      });
+      await loadFinanceData();
     } catch (e: any) {
       toast({
-        title: "Gagal menghapus pengeluaran",
-        description: e?.message || "Terjadi kesalahan",
-        variant: "destructive",
-      })
+        title: 'Gagal menghapus budget',
+        description: e?.message || 'Terjadi kesalahan',
+        variant: 'destructive',
+      });
     } finally {
-      setDeletingId(null)
-      setPendingDeleteExpense(null)
+      setDeletingId(null);
+      setPendingDeleteBudget(null);
     }
-  }
+  };
+
+  const handleDeleteBudget = (budget: any) => {
+    setPendingDeleteBudget(budget);
+  };
+
+  const doDeleteExpense = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Gagal menghapus pengeluaran');
+      }
+      toast({
+        title: 'Pengeluaran dihapus',
+        description: 'Pengeluaran telah berhasil dihapus.',
+      });
+      await loadFinanceData();
+    } catch (e: any) {
+      toast({
+        title: 'Gagal menghapus pengeluaran',
+        description: e?.message || 'Terjadi kesalahan',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingId(null);
+      setPendingDeleteExpense(null);
+    }
+  };
 
   const handleDeleteExpense = (expense: any) => {
-    setPendingDeleteExpense(expense)
-  }
+    setPendingDeleteExpense(expense);
+  };
 
   if (isLoading) {
     return (
@@ -224,7 +283,7 @@ export default function FinancePage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       </MainLayout>
-    )
+    );
   }
 
   return (
@@ -259,11 +318,18 @@ export default function FinancePage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button onClick={() => setIsBudgetModalOpen(true)} className="flex-1 sm:flex-none">
+          <Button
+            onClick={() => setIsBudgetModalOpen(true)}
+            className="flex-1 sm:flex-none"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Tambah Budget
           </Button>
-          <Button onClick={() => setIsExpenseModalOpen(true)} variant="outline" className="flex-1 sm:flex-none">
+          <Button
+            onClick={() => setIsExpenseModalOpen(true)}
+            variant="outline"
+            className="flex-1 sm:flex-none"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Tambah Pengeluaran
           </Button>
@@ -273,17 +339,25 @@ export default function FinancePage() {
         <Card>
           <CardHeader>
             <CardTitle>Budget Bulan Ini</CardTitle>
-            <CardDescription>Daftar budget yang aktif untuk periode yang dipilih</CardDescription>
+            <CardDescription>
+              Daftar budget yang aktif untuk periode yang dipilih
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {budgets.length > 0 ? (
               <div className="space-y-4">
                 {budgets.map((budget) => (
-                  <div key={budget.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div
+                    key={budget.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
                     <div className="flex items-center gap-4">
                       <div
                         className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: budget.categories?.color || "#6B7280" }}
+                        style={{
+                          backgroundColor:
+                            budget.categories?.color || '#6B7280',
+                        }}
                       />
                       <div>
                         <h4 className="font-medium">{budget.title}</h4>
@@ -291,12 +365,15 @@ export default function FinancePage() {
                           {budget.categories?.name} • {budget.groups?.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
+                          {formatDate(budget.start_date)} -{' '}
+                          {formatDate(budget.end_date)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 sm:gap-2">
-                      <p className="font-semibold text-lg hidden sm:block">{formatCurrency(budget.amount)}</p>
+                      <p className="font-semibold text-lg hidden sm:block">
+                        {formatCurrency(budget.amount)}
+                      </p>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -332,8 +409,14 @@ export default function FinancePage() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500">Belum ada budget untuk bulan ini</p>
-                <Button onClick={() => setIsBudgetModalOpen(true)} variant="outline" className="mt-4">
+                <p className="text-gray-500">
+                  Belum ada budget untuk bulan ini
+                </p>
+                <Button
+                  onClick={() => setIsBudgetModalOpen(true)}
+                  variant="outline"
+                  className="mt-4"
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Tambah Budget
                 </Button>
@@ -346,7 +429,9 @@ export default function FinancePage() {
         <Card>
           <CardHeader>
             <CardTitle>Daftar Pengeluaran</CardTitle>
-            <CardDescription>Semua pengeluaran untuk periode yang dipilih</CardDescription>
+            <CardDescription>
+              Semua pengeluaran untuk periode yang dipilih
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {expenses.length > 0 ? (
@@ -365,24 +450,35 @@ export default function FinancePage() {
                   <TableBody>
                     {expenses.map((expense) => (
                       <TableRow key={expense.id}>
-                        <TableCell className="font-medium">{formatDate(expense.expense_date)}</TableCell>
+                        <TableCell className="font-medium">
+                          {formatDate(expense.expense_date)}
+                        </TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium">{expense.title}</p>
-                            {expense.description && <p className="text-sm text-gray-600">{expense.description}</p>}
+                            {expense.description && (
+                              <p className="text-sm text-gray-600">
+                                {expense.description}
+                              </p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div
                               className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: expense.categories?.color || "#6B7280" }}
+                              style={{
+                                backgroundColor:
+                                  expense.categories?.color || '#6B7280',
+                              }}
                             />
-                            <span>{expense.categories?.name || "Lainnya"}</span>
+                            <span>{expense.categories?.name || 'Lainnya'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{expense.groups?.name || "Tidak ada grup"}</Badge>
+                          <Badge variant="secondary">
+                            {expense.groups?.name || 'Tidak ada grup'}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right font-semibold text-red-600">
                           {formatCurrency(expense.amount)}
@@ -426,9 +522,15 @@ export default function FinancePage() {
                 </Table>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Belum ada pengeluaran untuk bulan ini</p>
-                <Button onClick={() => setIsExpenseModalOpen(true)} variant="outline" className="mt-4">
+              <div className="text-center py-8 flex flex-col items-center justify-center">
+                <p className="text-gray-500">
+                  Belum ada pengeluaran untuk bulan ini
+                </p>
+                <Button
+                  onClick={() => setIsExpenseModalOpen(true)}
+                  variant="outline"
+                  className="mt-4"
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Tambah Pengeluaran
                 </Button>
@@ -450,62 +552,91 @@ export default function FinancePage() {
         />
 
         {/* View/Edit Modals */}
-        <BudgetViewModal isOpen={!!viewBudget} onClose={() => setViewBudget(null)} budget={viewBudget} />
+        <BudgetViewModal
+          isOpen={!!viewBudget}
+          onClose={() => setViewBudget(null)}
+          budget={viewBudget}
+        />
         <BudgetEditModal
           isOpen={!!editBudget}
           onClose={() => setEditBudget(null)}
           onSuccess={loadFinanceData}
           budget={editBudget}
         />
-        <ExpenseViewModal isOpen={!!viewExpense} onClose={() => setViewExpense(null)} expense={viewExpense} />
+        <ExpenseViewModal
+          isOpen={!!viewExpense}
+          onClose={() => setViewExpense(null)}
+          expense={viewExpense}
+        />
         <ExpenseEditModal
           isOpen={!!editExpense}
           onClose={() => setEditExpense(null)}
           onSuccess={loadFinanceData}
           expense={editExpense}
         />
-        <AlertDialog open={!!pendingDeleteBudget} onOpenChange={(open) => !open && setPendingDeleteBudget(null)}>
+        <AlertDialog
+          open={!!pendingDeleteBudget}
+          onOpenChange={(open) => !open && setPendingDeleteBudget(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Hapus Budget?</AlertDialogTitle>
               <AlertDialogDescription>
-                Apakah Anda yakin ingin menghapus budget "{pendingDeleteBudget?.title}"? Tindakan ini tidak dapat
+                Apakah Anda yakin ingin menghapus budget "
+                {pendingDeleteBudget?.title}"? Tindakan ini tidak dapat
                 dibatalkan.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setPendingDeleteBudget(null)}>Batal</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setPendingDeleteBudget(null)}>
+                Batal
+              </AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => pendingDeleteBudget && doDeleteBudget(pendingDeleteBudget.id)}
+                onClick={() =>
+                  pendingDeleteBudget && doDeleteBudget(pendingDeleteBudget.id)
+                }
                 disabled={deletingId === pendingDeleteBudget?.id}
               >
-                {deletingId === pendingDeleteBudget?.id ? "Menghapus..." : "Hapus"}
+                {deletingId === pendingDeleteBudget?.id
+                  ? 'Menghapus...'
+                  : 'Hapus'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
-        <AlertDialog open={!!pendingDeleteExpense} onOpenChange={(open) => !open && setPendingDeleteExpense(null)}>
+        <AlertDialog
+          open={!!pendingDeleteExpense}
+          onOpenChange={(open) => !open && setPendingDeleteExpense(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Hapus Pengeluaran?</AlertDialogTitle>
               <AlertDialogDescription>
-                Apakah Anda yakin ingin menghapus pengeluaran "{pendingDeleteExpense?.title}"? Tindakan ini tidak dapat
+                Apakah Anda yakin ingin menghapus pengeluaran "
+                {pendingDeleteExpense?.title}"? Tindakan ini tidak dapat
                 dibatalkan.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setPendingDeleteExpense(null)}>Batal</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setPendingDeleteExpense(null)}>
+                Batal
+              </AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => pendingDeleteExpense && doDeleteExpense(pendingDeleteExpense.id)}
+                onClick={() =>
+                  pendingDeleteExpense &&
+                  doDeleteExpense(pendingDeleteExpense.id)
+                }
                 disabled={deletingId === pendingDeleteExpense?.id}
               >
-                {deletingId === pendingDeleteExpense?.id ? "Menghapus..." : "Hapus"}
+                {deletingId === pendingDeleteExpense?.id
+                  ? 'Menghapus...'
+                  : 'Hapus'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
     </MainLayout>
-  )
+  );
 }
