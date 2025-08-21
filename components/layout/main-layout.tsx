@@ -1,11 +1,12 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { AuthGuard } from "../auth/auth-guard"
-import { Sidebar } from "./sidebar"
+import type React from 'react';
+import { AuthGuard } from '../auth/auth-guard';
+import { Sidebar } from './sidebar';
+import { Toaster } from '@/components/ui/toaster';
 
 interface MainLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
@@ -17,6 +18,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="p-4 lg:p-8 pt-16 lg:pt-8">{children}</div>
         </main>
       </div>
+      <Toaster />
     </AuthGuard>
-  )
+  );
 }

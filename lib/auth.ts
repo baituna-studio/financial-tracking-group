@@ -72,3 +72,38 @@ export async function getUserProfile(userId: string) {
   if (error) throw error;
   return data;
 }
+
+export async function getUserGroups(userId: string) {
+  const { data, error } = await supabase
+    .from('user_groups')
+    .select('*')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return data;
+}
+
+export async function getUserGroupsByGroupId(groupId: string) {
+  const { data, error } = await supabase
+    .from('user_groups')
+    .select(
+      ` role,
+        joined_at,
+        group_id,
+        user_id
+      `
+    )
+    .eq('group_id', groupId)
+    .order('role', { ascending: false })
+    .order('joined_at', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getUserGroupsWithMemberCount(groupId: string) {
+  const { data, error } = await supabase
+    .from('user_groups')
+    .select('*')
+    .eq('group_id', groupId);
+  if (error) throw error;
+  return data;
+}
