@@ -13,12 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { MainLayout } from '@/components/layout/main-layout';
 import { supabase } from '@/lib/supabase';
-import {
-  getCurrentUser,
-  getUserGroups,
-  getUserGroupsByGroupId,
-  getUserGroupsWithMemberCount,
-} from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import { formatDate } from '@/lib/utils';
 import { InviteDialog } from '@/components/groups/invite-dialog';
 import { GroupAddModal } from '@/components/modals/group-add-modal';
@@ -45,39 +40,60 @@ export default function GroupsPage() {
     try {
       const user = await getCurrentUser();
       if (!user) return;
-      console.log('user', user);
+
       // Get user's groups with member count
-      const userGroups = await getUserGroups(user.id);
-      console.log('userGroups', userGroups);
+      const { data: userGroups } = await supabase
+        .from('user_groups')
+        .select(
+          `
+        role,
+        joined_at,
+        groups(
+          id,
+          name,
+          description,
+          created_at,
+          profiles!groups_created_by_fkey(full_name)
+        )
+      `
+        )
+        .eq('user_id', user.id);
+
       if (userGroups) {
         // Get member counts and member details for each group
         const groupsWithCounts = await Promise.all(
-          userGroups.map(async (ug: any) => {
-            // Get member count for this group
-            const usersByGroupId = await getUserGroupsByGroupId(ug.group_id);
-            console.log('usersByGroupId', usersByGroupId);
+          userGroups.map(async (ug) => {
+            const { count } = await supabase
+              .from('user_groups')
+              .select('*', { count: 'exact', head: true })
+              .eq('group_id', ug.groups.id);
 
             // Get all members for this group
-            const members = usersByGroupId.filter(
-              (ug: any) => ug.role === 'member'
-            );
-            const admins = usersByGroupId.filter(
-              (ug: any) => ug.role === 'admin'
-            );
-            console.log('members', members);
-            console.log('admins', admins);
+            const { data: members } = await supabase
+              .from('user_groups')
+              .select(
+                `
+              role,
+              joined_at,
+              profiles(id, full_name, email)
+            `
+              )
+              .eq('group_id', ug.groups.id)
+              .order('role', { ascending: false }) // Admin first
+              .order('joined_at', { ascending: true });
+
             // Store members in state
             setGroupMembers((prev) => ({
               ...prev,
-              [ug.group_id]: members || [],
+              [ug.groups.id]: members || [],
             }));
-            console.log('groupMembers', groupMembers);
+
             return {
               ...ug.groups,
               role: ug.role,
               joined_at: ug.joined_at,
-              member_count: members.length + admins.length || 0,
-              creator_name: ug?.groups?.profiles?.[0]?.full_name,
+              member_count: count || 0,
+              creator_name: ug.groups.profiles?.full_name,
             };
           })
         );
@@ -116,10 +132,12 @@ export default function GroupsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Grup</h1>
             <p className="text-gray-600">Kelola grup keuangan Anda</p>
           </div>
-          <Button onClick={() => setIsAddGroupModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Buat Grup Baru
-          </Button>
+          {groups.length === 0 && (
+            <Button onClick={() => setIsAddGroupModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Buat Grup Baru
+            </Button>
+          )}
         </div>
 
         {/* Groups Grid */}
