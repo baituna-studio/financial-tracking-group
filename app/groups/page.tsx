@@ -62,7 +62,7 @@ export default function GroupsPage() {
       if (userGroups) {
         // Get member counts and member details for each group
         const groupsWithCounts = await Promise.all(
-          userGroups.map(async (ug) => {
+          userGroups.map(async (ug: any) => {
             const { count } = await supabase
               .from('user_groups')
               .select('*', { count: 'exact', head: true })
