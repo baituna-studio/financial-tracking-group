@@ -1,116 +1,236 @@
-"use client"
+'use client';
 
-import { useEffect, useMemo, useState } from "react"
-import { Plus, Edit, Trash2, Eye } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MainLayout } from "@/components/layout/main-layout"
-import { formatCurrency } from "@/lib/utils"
-import { supabase } from "@/lib/supabase"
-import { getCurrentUser } from "@/lib/auth"
-import { toast } from "@/hooks/use-toast"
-import { CategoryAddModal } from "@/components/modals/category-add-modal"
-import { CategoryEditModal } from "@/components/modals/category-edit-modal"
-import { CategoryViewModal } from "@/components/modals/category-view-modal"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Edit, Trash2, Eye, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { MainLayout } from '@/components/layout/main-layout';
+import {
+  formatCurrency,
+  getMonthRange,
+  getCustomMonthLabel,
+} from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { getCurrentUser, getUserProfile } from '@/lib/auth';
+import { toast } from '@/hooks/use-toast';
+import { CategoryAddModal } from '@/components/modals/category-add-modal';
+import { CategoryEditModal } from '@/components/modals/category-edit-modal';
+import { CategoryViewModal } from '@/components/modals/category-view-modal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function CategoriesPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [categories, setCategories] = useState<any[]>([])
-  const [expensesByCategory, setExpensesByCategory] = useState<Record<string, { total: number; count: number }>>({})
-  const [isAddOpen, setIsAddOpen] = useState(false)
-  const [editCategory, setEditCategory] = useState<any | null>(null)
-  const [viewCategory, setViewCategory] = useState<any | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"Pengeluaran" | "Pemasukan">("Pengeluaran")
-  const [pendingDeleteCategory, setPendingDeleteCategory] = useState<any | null>(null)
+  const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [expensesByCategory, setExpensesByCategory] = useState<
+    Record<string, { total: number; count: number }>
+  >({});
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editCategory, setEditCategory] = useState<any | null>(null);
+  const [viewCategory, setViewCategory] = useState<any | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'Pengeluaran' | 'Pemasukan'>(
+    'Pengeluaran'
+  );
+  const [pendingDeleteCategory, setPendingDeleteCategory] = useState<
+    any | null
+  >(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      '0'
+    )}`;
+  });
+
+  // Generate months with custom labels
+  const months = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const monthsArray = [];
+    const monthStartDay = profile?.month_start_day || 1;
+
+    // Generate untuk 3 tahun: tahun lalu, tahun ini, tahun depan
+    const startYear = currentYear - 1;
+    const endYear = currentYear + 1;
+
+    for (let year = startYear; year <= endYear; year++) {
+      for (let month = 1; month <= 12; month++) {
+        const monthValue = `${year}-${String(month).padStart(2, '0')}`;
+        const monthLabel = getCustomMonthLabel(year, month, monthStartDay);
+        monthsArray.push({
+          value: monthValue,
+          label: monthLabel,
+          year: year,
+          month: month,
+        });
+      }
+    }
+
+    // Sort dari yang terbaru ke terlama
+    monthsArray.sort((a, b) => {
+      if (a.year !== b.year) {
+        return b.year - a.year;
+      }
+      return b.month - a.month;
+    });
+
+    return monthsArray;
+  }, [profile?.month_start_day]);
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadUserProfile();
+  }, []);
+
+  useEffect(() => {
+    if (profile) {
+      loadData();
+    }
+  }, [selectedMonth, profile]);
+
+  const loadUserProfile = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (!user) return;
+
+      const userProfile = await getUserProfile(user.id);
+      setProfile(userProfile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
 
   const loadData = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const user = await getCurrentUser()
-      if (!user) return
+      const user = await getCurrentUser();
+      if (!user || !profile) return;
 
       // get user's groups
       const { data: userGroups, error: ugErr } = await supabase
-        .from("user_groups")
-        .select("group_id")
-        .eq("user_id", user.id)
-      if (ugErr) throw ugErr
-      const groupIds = userGroups?.map((ug) => ug.group_id) || []
+        .from('user_groups')
+        .select('group_id')
+        .eq('user_id', user.id);
+      if (ugErr) throw ugErr;
+      const groupIds = userGroups?.map((ug) => ug.group_id) || [];
 
       // fetch categories for those groups
       const { data: categoriesData, error: cErr } = await supabase
-        .from("categories")
-        .select("*")
-        .in("group_id", groupIds)
-        .order("created_at", { ascending: false })
-      if (cErr) throw cErr
-      setCategories(categoriesData || [])
+        .from('categories')
+        .select('*')
+        .in('group_id', groupIds)
+        .order('created_at', { ascending: false });
+      if (cErr) throw cErr;
+      setCategories(categoriesData || []);
 
-      // fetch expenses to compute totals by category (global, not per month)
+      // Get month range for filtering expenses
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const { start, end } = getMonthRange(
+        year,
+        month,
+        profile.month_start_day || 1
+      );
+
+      // fetch expenses for the selected month to compute totals by category
       const { data: expensesData, error: eErr } = await supabase
-        .from("expenses")
-        .select("id, amount, category_id")
-        .in("group_id", groupIds)
-      if (eErr) throw eErr
+        .from('expenses')
+        .select('id, amount, category_id')
+        .in('group_id', groupIds)
+        .gte('expense_date', start)
+        .lte('expense_date', end);
+      if (eErr) throw eErr;
 
-      const map: Record<string, { total: number; count: number }> = {}
+      const map: Record<string, { total: number; count: number }> = {};
       for (const ex of expensesData || []) {
-        const key = ex.category_id
-        if (!map[key]) map[key] = { total: 0, count: 0 }
-        map[key].total += Number(ex.amount || 0)
-        map[key].count += 1
+        const key = ex.category_id;
+        if (!map[key]) map[key] = { total: 0, count: 0 };
+        map[key].total += Number(ex.amount || 0);
+        map[key].count += 1;
       }
-      setExpensesByCategory(map)
+      setExpensesByCategory(map);
     } catch (e) {
-      console.error(e)
-      toast({ title: "Gagal memuat kategori", description: "Silakan coba lagi.", variant: "destructive" })
+      console.error(e);
+      toast({
+        title: 'Gagal memuat kategori',
+        description: 'Silakan coba lagi.',
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleDelete = (category: any) => {
-    setPendingDeleteCategory(category)
-  }
+    setPendingDeleteCategory(category);
+  };
 
   const doDelete = async (id: string) => {
-    setDeletingId(id)
+    setDeletingId(id);
     try {
-      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" })
-      const data = await res.json()
-      if (!res.ok || !data.ok) throw new Error(data.error || "Gagal menghapus kategori")
-      toast({ title: "Kategori dihapus", description: "Kategori telah dihapus." })
-      await loadData()
+      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.ok)
+        throw new Error(data.error || 'Gagal menghapus kategori');
+      toast({
+        title: 'Kategori dihapus',
+        description: 'Kategori telah dihapus.',
+      });
+      await loadData();
     } catch (e: any) {
-      toast({ title: "Gagal menghapus kategori", description: e?.message || "Error", variant: "destructive" })
+      toast({
+        title: 'Gagal menghapus kategori',
+        description: e?.message || 'Error',
+        variant: 'destructive',
+      });
     } finally {
-      setDeletingId(null)
-      setPendingDeleteCategory(null)
+      setDeletingId(null);
+      setPendingDeleteCategory(null);
     }
-  }
+  };
 
   const iconMap: Record<string, string> = {
-    utensils: "🍽️",
-    zap: "⚡",
-    "graduation-cap": "🎓",
-    car: "🚗",
-    heart: "❤️",
-    "gamepad-2": "🎮",
-    "shopping-bag": "🛍️",
-    "more-horizontal": "📝",
-    folder: "📁",
-  }
+    utensils: '🍽️',
+    zap: '⚡',
+    'graduation-cap': '🎓',
+    car: '🚗',
+    heart: '❤️',
+    'gamepad-2': '🎮',
+    'shopping-bag': '🛍️',
+    'more-horizontal': '📝',
+    folder: '📁',
+  };
 
-  const incomeCategories = useMemo(() => categories.filter((c) => c.type === "Pemasukan"), [categories])
-  const expenseCategories = useMemo(() => categories.filter((c) => c.type === "Pengeluaran"), [categories])
+  const incomeCategories = useMemo(
+    () => categories.filter((c) => c.type === 'Pemasukan'),
+    [categories]
+  );
+  const expenseCategories = useMemo(
+    () => categories.filter((c) => c.type === 'Pengeluaran'),
+    [categories]
+  );
 
   const renderGrid = (items: any[]) => {
     if (items.length === 0) {
@@ -118,21 +238,31 @@ export default function CategoriesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-gray-500">Belum ada kategori pada bagian ini</p>
-            <Button onClick={() => setIsAddOpen(true)} variant="outline" className="mt-4">
+            <Button
+              onClick={() => setIsAddOpen(true)}
+              variant="outline"
+              className="mt-4"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Tambah Kategori
             </Button>
           </CardContent>
         </Card>
-      )
+      );
     }
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {items.map((category) => {
-          const stats = expensesByCategory[category.id] || { total: 0, count: 0 }
+          const stats = expensesByCategory[category.id] || {
+            total: 0,
+            count: 0,
+          };
           return (
-            <Card key={category.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={category.id}
+              className="hover:shadow-md transition-shadow"
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -141,7 +271,7 @@ export default function CategoriesPage() {
                       style={{ backgroundColor: category.color }}
                       aria-hidden
                     >
-                      {iconMap[category.icon as keyof typeof iconMap] || "📁"}
+                      {iconMap[category.icon as keyof typeof iconMap] || '📁'}
                     </div>
                     <div>
                       <CardTitle className="text-lg">{category.name}</CardTitle>
@@ -151,10 +281,20 @@ export default function CategoriesPage() {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewCategory(category)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setViewCategory(category)}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCategory(category)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setEditCategory(category)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
@@ -173,23 +313,28 @@ export default function CategoriesPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">
-                      {category.type === "Pengeluaran" ? "Total Pengeluaran" : "Total Pemasukan"}:
+                      {category.type === 'Pengeluaran'
+                        ? 'Total Pengeluaran'
+                        : 'Total Pemasukan'}
+                      :
                     </span>
                     <Badge variant="secondary" className="font-semibold">
                       {formatCurrency(stats.total)}
                     </Badge>
                   </div>
                   {category.description && (
-                    <p className="text-xs text-gray-600 line-clamp-2">{category.description}</p>
+                    <p className="text-xs text-gray-600 line-clamp-2">
+                      {category.description}
+                    </p>
                   )}
                 </div>
               </CardContent>
             </Card>
-          )
+          );
         })}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <MainLayout>
@@ -198,16 +343,37 @@ export default function CategoriesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Kategori</h1>
-            <p className="text-gray-600">Kelola kategori pemasukan dan pengeluaran Anda</p>
+            <p className="text-gray-600">
+              Kelola kategori pemasukan dan pengeluaran Anda
+            </p>
           </div>
-          <Button onClick={() => setIsAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Kategori
-          </Button>
+          <div className="flex items-center gap-3">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-56">
+                <Calendar className="mr-2 h-4 w-4" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {months.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setIsAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah Kategori
+            </Button>
+          </div>
         </div>
 
         {/* Tabs for Pemasukan/Pengeluaran */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as any)}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2 sm:w-auto">
             <TabsTrigger value="Pengeluaran">Pengeluaran</TabsTrigger>
             <TabsTrigger value="Pemasukan">Pemasukan</TabsTrigger>
@@ -233,34 +399,53 @@ export default function CategoriesPage() {
         </Tabs>
 
         {/* Modals */}
-        <CategoryAddModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={loadData} />
+        <CategoryAddModal
+          isOpen={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          onSuccess={loadData}
+        />
         <CategoryEditModal
           isOpen={!!editCategory}
           onClose={() => setEditCategory(null)}
           onSuccess={loadData}
           category={editCategory}
         />
-        <CategoryViewModal isOpen={!!viewCategory} onClose={() => setViewCategory(null)} category={viewCategory} />
+        <CategoryViewModal
+          isOpen={!!viewCategory}
+          onClose={() => setViewCategory(null)}
+          category={viewCategory}
+        />
       </div>
-      <AlertDialog open={!!pendingDeleteCategory} onOpenChange={(open) => !open && setPendingDeleteCategory(null)}>
+      <AlertDialog
+        open={!!pendingDeleteCategory}
+        onOpenChange={(open) => !open && setPendingDeleteCategory(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Kategori?</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus kategori "{pendingDeleteCategory?.name}"? Menghapus kategori dapat mempengaruhi data terkait. Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus kategori "
+              {pendingDeleteCategory?.name}"? Menghapus kategori dapat
+              mempengaruhi data terkait. Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingDeleteCategory(null)}>Batal</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setPendingDeleteCategory(null)}>
+              Batal
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => pendingDeleteCategory && doDelete(pendingDeleteCategory.id)}
+              onClick={() =>
+                pendingDeleteCategory && doDelete(pendingDeleteCategory.id)
+              }
               disabled={deletingId === pendingDeleteCategory?.id}
             >
-              {deletingId === pendingDeleteCategory?.id ? "Menghapus..." : "Hapus"}
+              {deletingId === pendingDeleteCategory?.id
+                ? 'Menghapus...'
+                : 'Hapus'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </MainLayout>
-  )
+  );
 }
