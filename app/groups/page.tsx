@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Users, UserPlus, User, Crown, Edit, Eye } from 'lucide-react';
+import {
+  Plus,
+  Users,
+  UserPlus,
+  User,
+  Crown,
+  Edit,
+  Eye,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,10 +20,21 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { MainLayout } from '@/components/layout/main-layout';
 import { supabase } from '@/lib/supabase';
 import { getCurrentUser } from '@/lib/auth';
 import { formatDate } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 import { InviteDialog } from '@/components/groups/invite-dialog';
 import { GroupAddModal } from '@/components/modals/group-add-modal';
 import { GroupEditModal } from '@/components/modals/group-edit-modal';
@@ -30,6 +50,8 @@ export default function GroupsPage() {
   const [editGroup, setEditGroup] = useState<any | null>(null);
   const [viewMembersGroup, setViewMembersGroup] = useState<any | null>(null);
   const [viewMembers, setViewMembers] = useState<any[]>([]);
+  const [deleteGroup, setDeleteGroup] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadGroups();
@@ -111,6 +133,47 @@ export default function GroupsPage() {
     const members = groupMembers[group.id] || [];
     setViewMembersGroup(group);
     setViewMembers(members);
+  };
+
+  const handleLeaveGroup = async (group: any) => {
+    setDeleteGroup(group);
+  };
+
+  const confirmLeaveGroup = async () => {
+    if (!deleteGroup) return;
+
+    setIsDeleting(true);
+    try {
+      const user = await getCurrentUser();
+      if (!user) return;
+
+      // Remove user from the group (leave group)
+      const { error } = await supabase
+        .from('user_groups')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('group_id', deleteGroup.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Berhasil keluar dari grup',
+        description: `Anda telah keluar dari grup "${deleteGroup.name}".`,
+      });
+
+      // Reload groups
+      await loadGroups();
+    } catch (error: any) {
+      console.error('Error leaving group:', error);
+      toast({
+        title: 'Gagal keluar dari grup',
+        description: error.message || 'Terjadi kesalahan saat keluar dari grup',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteGroup(null);
+    }
   };
 
   if (isLoading) {
@@ -252,15 +315,26 @@ export default function GroupsPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
                       {group.role === 'admin' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-transparent"
-                          onClick={() => setEditGroup(group)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-transparent"
+                            onClick={() => setEditGroup(group)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-transparent text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleLeaveGroup(group)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Keluar
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -313,6 +387,47 @@ export default function GroupsPage() {
         group={viewMembersGroup}
         members={viewMembers}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteGroup}
+        onOpenChange={(open) => !open && setDeleteGroup(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keluar dari Grup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin keluar dari grup "{deleteGroup?.name}"?
+              <br />
+              <br />
+              Setelah keluar, Anda tidak akan dapat:
+              <br />
+              • Melihat data keuangan grup ini
+              <br />
+              • Mengakses kategori grup ini
+              <br />
+              • Mengundang anggota baru
+              <br />
+              <br />
+              <strong>
+                Anda dapat bergabung kembali jika diundang oleh admin grup.
+              </strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteGroup(null)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmLeaveGroup}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Memproses...' : 'Keluar dari Grup'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }
