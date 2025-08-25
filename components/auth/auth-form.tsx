@@ -25,10 +25,7 @@ export function AuthForm() {
     try {
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
-      console.log('email', email);
-      console.log('password', password);
-      const res = await signIn(email, password);
-      console.log('res', res);
+      await signIn(email, password);
       toast({
         title: 'Berhasil masuk',
         description: 'Selamat datang di aplikasi keuangan!',
