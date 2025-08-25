@@ -40,6 +40,7 @@ import {
   formatDate,
   getMonthRange,
   getCustomMonthLabel,
+  getCurrentMonthValue,
   exportToExcel,
 } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
@@ -62,6 +63,7 @@ export default function FinancePage() {
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
+    // Default to current month, will be updated when profile loads
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
       2,
@@ -122,9 +124,20 @@ export default function FinancePage() {
 
   useEffect(() => {
     if (profile) {
+      // Update selected month based on user's month start day setting
+      const currentMonthValue = getCurrentMonthValue(
+        profile.month_start_day || 1
+      );
+      setSelectedMonth(currentMonthValue);
       loadFinanceData();
     }
-  }, [selectedMonth, profile]);
+  }, [profile]);
+
+  useEffect(() => {
+    if (profile && selectedMonth) {
+      loadFinanceData();
+    }
+  }, [selectedMonth]);
 
   const loadUserProfile = async () => {
     try {

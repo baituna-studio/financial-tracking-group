@@ -24,6 +24,7 @@ import {
   formatCurrency,
   getMonthRange,
   getCustomMonthLabel,
+  getCurrentMonthValue,
 } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { getCurrentUser, getUserProfile } from '@/lib/auth';
@@ -60,6 +61,7 @@ export default function CategoriesPage() {
   >(null);
   const [profile, setProfile] = useState<any>(null);
   const [selectedMonth, setSelectedMonth] = useState(() => {
+    // Default to current month, will be updated when profile loads
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
       2,
@@ -107,9 +109,20 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     if (profile) {
+      // Update selected month based on user's month start day setting
+      const currentMonthValue = getCurrentMonthValue(
+        profile.month_start_day || 1
+      );
+      setSelectedMonth(currentMonthValue);
       loadData();
     }
-  }, [selectedMonth, profile]);
+  }, [profile]);
+
+  useEffect(() => {
+    if (profile && selectedMonth) {
+      loadData();
+    }
+  }, [selectedMonth]);
 
   const loadUserProfile = async () => {
     try {
