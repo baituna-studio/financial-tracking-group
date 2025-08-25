@@ -157,10 +157,10 @@ export default function FinancePage() {
       );
     }
 
-    // Sort by date descending (newest first)
+    // Sort by created_at date descending (newest first)
     filtered.sort((a, b) => {
-      const dateA = new Date(a.expense_date).getTime();
-      const dateB = new Date(b.expense_date).getTime();
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
       return dateB - dateA;
     });
 

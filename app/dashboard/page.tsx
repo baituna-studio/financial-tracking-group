@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -23,6 +24,9 @@ import {
   Target,
   Calendar,
   Download,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { supabase } from '@/lib/supabase';
@@ -71,6 +75,16 @@ export default function DashboardPage() {
     'expense'
   );
 
+  // Search and pagination state for expenses by category
+  const [expenseCategorySearch, setExpenseCategorySearch] = useState('');
+  const [expenseCategoryPage, setExpenseCategoryPage] = useState(1);
+  const [expenseCategoryPageSize, setExpenseCategoryPageSize] = useState(5);
+
+  // Search and pagination state for recent expenses
+  const [recentExpenseSearch, setRecentExpenseSearch] = useState('');
+  const [recentExpensePage, setRecentExpensePage] = useState(1);
+  const [recentExpensePageSize, setRecentExpensePageSize] = useState(5);
+
   // Generate months with custom labels
   const months = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -104,6 +118,85 @@ export default function DashboardPage() {
 
     return monthsArray;
   }, [profile?.month_start_day]);
+
+  // Filtered and paginated expenses by category
+  const filteredExpensesByCategory = useMemo(() => {
+    let filtered = [...dashboardData.expensesByCategory];
+
+    if (expenseCategorySearch.trim()) {
+      const searchLower = expenseCategorySearch.toLowerCase();
+      filtered = filtered.filter((item) =>
+        item.category?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return filtered;
+  }, [dashboardData.expensesByCategory, expenseCategorySearch]);
+
+  const totalExpenseCategories = filteredExpensesByCategory.length;
+  const totalExpenseCategoryPages = Math.ceil(
+    totalExpenseCategories / expenseCategoryPageSize
+  );
+  const expenseCategoryStartIndex =
+    (expenseCategoryPage - 1) * expenseCategoryPageSize;
+  const expenseCategoryEndIndex =
+    expenseCategoryStartIndex + expenseCategoryPageSize;
+  const currentExpenseCategories = filteredExpensesByCategory.slice(
+    expenseCategoryStartIndex,
+    expenseCategoryEndIndex
+  );
+
+  // Filtered and paginated recent expenses
+  const filteredRecentExpenses = useMemo(() => {
+    let filtered = [...dashboardData.recentExpenses];
+
+    if (recentExpenseSearch.trim()) {
+      const searchLower = recentExpenseSearch.toLowerCase();
+      filtered = filtered.filter(
+        (expense) =>
+          expense.title?.toLowerCase().includes(searchLower) ||
+          expense.categories?.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort by created_at date descending (newest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateB - dateA;
+    });
+
+    return filtered;
+  }, [dashboardData.recentExpenses, recentExpenseSearch]);
+
+  const totalRecentExpenses = filteredRecentExpenses.length;
+  const totalRecentExpensePages = Math.ceil(
+    totalRecentExpenses / recentExpensePageSize
+  );
+  const recentExpenseStartIndex =
+    (recentExpensePage - 1) * recentExpensePageSize;
+  const recentExpenseEndIndex = recentExpenseStartIndex + recentExpensePageSize;
+  const currentRecentExpenses = filteredRecentExpenses.slice(
+    recentExpenseStartIndex,
+    recentExpenseEndIndex
+  );
+
+  // Reset pagination when data changes
+  useEffect(() => {
+    setExpenseCategoryPage(1);
+  }, [dashboardData.expensesByCategory.length]);
+
+  useEffect(() => {
+    setExpenseCategoryPage(1);
+  }, [expenseCategorySearch]);
+
+  useEffect(() => {
+    setRecentExpensePage(1);
+  }, [dashboardData.recentExpenses.length]);
+
+  useEffect(() => {
+    setRecentExpensePage(1);
+  }, [recentExpenseSearch]);
 
   useEffect(() => {
     loadUserProfile();
@@ -175,11 +268,13 @@ export default function DashboardPage() {
       // Expenses for the month
       const { data: expenses, error: eErr } = await supabase
         .from('expenses')
-        .select('amount, title, expense_date, categories(name, color)')
+        .select(
+          'amount, title, expense_date, created_at, categories(name, color)'
+        )
         .in('group_id', groupIds)
         .gte('expense_date', start)
         .lte('expense_date', end)
-        .order('expense_date', { ascending: false });
+        .order('created_at', { ascending: false });
       if (eErr) throw eErr;
 
       const totalExpenses =
@@ -188,11 +283,13 @@ export default function DashboardPage() {
       // Budgets for the month
       const { data: income, error: iErr } = await supabase
         .from('budgets')
-        .select('amount, title, start_date, categories(name, color)')
+        .select(
+          'amount, title, start_date, created_at, categories(name, color)'
+        )
         .in('group_id', groupIds)
         .gte('start_date', start)
         .lte('start_date', end)
-        .order('start_date', { ascending: false });
+        .order('created_at', { ascending: false });
       if (iErr) throw iErr;
 
       const totalIncome =
@@ -214,6 +311,7 @@ export default function DashboardPage() {
           return acc;
         }, []) || [];
 
+      // Sort expenses by category by amount descending (terbesar ke terkecil)
       expensesByCategory.sort((a, b) => b.amount - a.amount);
 
       // Group income by category
@@ -232,6 +330,7 @@ export default function DashboardPage() {
           return acc;
         }, []) || [];
 
+      // Sort income by category by amount descending (terbesar ke terkecil)
       incomeByCategory.sort((a, b) => b.amount - a.amount);
 
       setDashboardData({
@@ -241,8 +340,8 @@ export default function DashboardPage() {
         remainingBudget: totalBudget - totalExpenses,
         expensesByCategory,
         incomeByCategory,
-        recentExpenses: expenses?.slice(0, 5) || [],
-        recentIncome: income?.slice(0, 5) || [],
+        recentExpenses: expenses || [], // Show all expenses instead of limiting to 5
+        recentIncome: income || [], // Show all income instead of limiting to 5
       });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -391,8 +490,42 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Search and Controls */}
+              <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 mb-6">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-none">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Cari kategori..."
+                      value={expenseCategorySearch}
+                      onChange={(e) => setExpenseCategorySearch(e.target.value)}
+                      className="pl-10 w-full sm:w-64"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Per halaman:</span>
+                    <Select
+                      value={expenseCategoryPageSize.toString()}
+                      onValueChange={(value) => {
+                        setExpenseCategoryPageSize(Number(value));
+                        setExpenseCategoryPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4">
-                {dashboardData.expensesByCategory.map((item, idx) => (
+                {currentExpenseCategories.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div
@@ -420,12 +553,90 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
-                {dashboardData.expensesByCategory.length === 0 && (
+                {currentExpenseCategories.length === 0 && (
                   <p className="text-center text-gray-500 py-4">
                     Belum ada pengeluaran bulan ini
                   </p>
                 )}
               </div>
+              {totalExpenseCategoryPages > 1 && (
+                <div className="flex flex-col sm:flex-row justify-end items-center gap-4 mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>
+                      Menampilkan {expenseCategoryStartIndex + 1}-
+                      {Math.min(
+                        expenseCategoryEndIndex,
+                        totalExpenseCategories
+                      )}{' '}
+                      dari {totalExpenseCategories} kategori
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setExpenseCategoryPage((prev) => Math.max(1, prev - 1))
+                      }
+                      disabled={expenseCategoryPage === 1}
+                      className="w-8 h-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from(
+                        { length: Math.min(5, totalExpenseCategoryPages) },
+                        (_, i) => {
+                          let pageNum;
+                          if (totalExpenseCategoryPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (expenseCategoryPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (
+                            expenseCategoryPage >=
+                            totalExpenseCategoryPages - 2
+                          ) {
+                            pageNum = totalExpenseCategoryPages - 4 + i;
+                          } else {
+                            pageNum = expenseCategoryPage - 2 + i;
+                          }
+
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={
+                                expenseCategoryPage === pageNum
+                                  ? 'default'
+                                  : 'outline'
+                              }
+                              size="sm"
+                              onClick={() => setExpenseCategoryPage(pageNum)}
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        }
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setExpenseCategoryPage((prev) =>
+                          Math.min(totalExpenseCategoryPages, prev + 1)
+                        )
+                      }
+                      disabled={
+                        expenseCategoryPage === totalExpenseCategoryPages
+                      }
+                      className="w-8 h-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -581,12 +792,47 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle>Pengeluaran Terbaru</CardTitle>
               <CardDescription>
-                5 pengeluaran terakhir bulan ini
+                Semua pengeluaran untuk periode yang dipilih (urut berdasarkan
+                tanggal dibuat)
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Search and Controls */}
+              <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 mb-6">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-none">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Cari pengeluaran..."
+                      value={recentExpenseSearch}
+                      onChange={(e) => setRecentExpenseSearch(e.target.value)}
+                      className="pl-10 w-full sm:w-64"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Per halaman:</span>
+                    <Select
+                      value={recentExpensePageSize.toString()}
+                      onValueChange={(value) => {
+                        setRecentExpensePageSize(Number(value));
+                        setRecentExpensePage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4">
-                {dashboardData.recentExpenses.map((expense: any, i: number) => (
+                {currentRecentExpenses.map((expense: any, i: number) => (
                   <div key={i} className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{expense.title}</p>
@@ -600,19 +846,95 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 ))}
-                {dashboardData.recentExpenses.length === 0 && (
+                {currentRecentExpenses.length === 0 && (
                   <p className="text-center text-gray-500 py-4">
                     Belum ada pengeluaran bulan ini
                   </p>
                 )}
               </div>
+              {totalRecentExpensePages > 1 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>
+                      Menampilkan {recentExpenseStartIndex + 1}-
+                      {Math.min(recentExpenseEndIndex, totalRecentExpenses)}{' '}
+                      dari {totalRecentExpenses} pengeluaran
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setRecentExpensePage((prev) => Math.max(1, prev - 1))
+                      }
+                      disabled={recentExpensePage === 1}
+                      className="w-8 h-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from(
+                        { length: Math.min(5, totalRecentExpensePages) },
+                        (_, i) => {
+                          let pageNum;
+                          if (totalRecentExpensePages <= 5) {
+                            pageNum = i + 1;
+                          } else if (recentExpensePage <= 3) {
+                            pageNum = i + 1;
+                          } else if (
+                            recentExpensePage >=
+                            totalRecentExpensePages - 2
+                          ) {
+                            pageNum = totalRecentExpensePages - 4 + i;
+                          } else {
+                            pageNum = recentExpensePage - 2 + i;
+                          }
+
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={
+                                recentExpensePage === pageNum
+                                  ? 'default'
+                                  : 'outline'
+                              }
+                              size="sm"
+                              onClick={() => setRecentExpensePage(pageNum)}
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        }
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setRecentExpensePage((prev) =>
+                          Math.min(totalRecentExpensePages, prev + 1)
+                        )
+                      }
+                      disabled={recentExpensePage === totalRecentExpensePages}
+                      className="w-8 h-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Pemasukan Terbaru</CardTitle>
-              <CardDescription>5 pemasukan terakhir bulan ini</CardDescription>
+              <CardDescription>
+                Semua pemasukan untuk periode yang dipilih (urut berdasarkan
+                tanggal dibuat)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
