@@ -227,14 +227,15 @@ export default function FinancePage() {
         throw new Error(data.error || 'Gagal menghapus budget');
       }
       toast({
-        title: 'Budget dihapus',
-        description: 'Budget telah berhasil dihapus.',
+        title: 'Pemasukan dihapus',
+        description: 'Pemasukan telah berhasil dihapus.',
+        variant: 'default',
       });
       await loadFinanceData();
     } catch (e: any) {
       toast({
-        title: 'Gagal menghapus budget',
-        description: e?.message || 'Terjadi kesalahan',
+        title: 'Gagal menghapus pemasukan',
+        description: e?.message || 'Terjadi kesalahan!',
         variant: 'destructive',
       });
     } finally {
@@ -256,13 +257,14 @@ export default function FinancePage() {
         throw new Error(data.error || 'Gagal menghapus pengeluaran');
       }
       toast({
-        title: 'Pengeluaran dihapus',
-        description: 'Pengeluaran telah berhasil dihapus.',
+        title: 'Pengeluaran berhasil dihapus',
+        description: 'Pengeluaran berhasil dihapus.',
+        variant: 'default',
       });
       await loadFinanceData();
     } catch (e: any) {
       toast({
-        title: 'Gagal menghapus pengeluaran',
+        title: 'Gagal menghapus pengeluaran!',
         description: e?.message || 'Terjadi kesalahan',
         variant: 'destructive',
       });
@@ -323,7 +325,7 @@ export default function FinancePage() {
             className="flex-1 sm:flex-none"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Tambah Budget
+            Tambah Pemasukan
           </Button>
           <Button
             onClick={() => setIsExpenseModalOpen(true)}
@@ -338,9 +340,9 @@ export default function FinancePage() {
         {/* Budgets Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Budget Bulan Ini</CardTitle>
+            <CardTitle>Pemasukan Bulan Ini</CardTitle>
             <CardDescription>
-              Daftar budget yang aktif untuk periode yang dipilih
+              Daftar pemasukan yang aktif untuk periode yang dipilih
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -378,8 +380,8 @@ export default function FinancePage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setViewBudget(budget)}
-                        aria-label="Lihat budget"
-                        title="Lihat budget"
+                        aria-label="Lihat pemasukan"
+                        title="Lihat pemasukan"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -387,8 +389,8 @@ export default function FinancePage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setEditBudget(budget)}
-                        aria-label="Edit budget"
-                        title="Edit budget"
+                        aria-label="Edit pemasukan"
+                        title="Edit pemasukan"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -398,8 +400,8 @@ export default function FinancePage() {
                         className="text-red-600"
                         onClick={() => handleDeleteBudget(budget)}
                         disabled={deletingId === budget.id}
-                        aria-label="Hapus budget"
-                        title="Hapus budget"
+                        aria-label="Hapus pemasukan"
+                        title="Hapus pemasukan"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -410,7 +412,7 @@ export default function FinancePage() {
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500">
-                  Belum ada budget untuk bulan ini
+                  Belum ada pemasukan untuk bulan ini
                 </p>
                 <Button
                   onClick={() => setIsBudgetModalOpen(true)}
@@ -418,7 +420,7 @@ export default function FinancePage() {
                   className="mt-4"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Tambah Budget
+                  Tambah Pemasukan
                 </Button>
               </div>
             )}
@@ -580,9 +582,9 @@ export default function FinancePage() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Hapus Budget?</AlertDialogTitle>
+              <AlertDialogTitle>Hapus Pemasukan?</AlertDialogTitle>
               <AlertDialogDescription>
-                Apakah Anda yakin ingin menghapus budget "
+                Apakah Anda yakin ingin menghapus pemasukan "
                 {pendingDeleteBudget?.title}"? Tindakan ini tidak dapat
                 dibatalkan.
               </AlertDialogDescription>
