@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { CurrencyInput } from "@/components/form/currency-input"
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { CurrencyInput } from '@/components/form/currency-input';
 import {
   Dialog,
   DialogContent,
@@ -12,61 +12,80 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import { getCurrentUser } from "@/lib/auth"
-import { toast } from "@/hooks/use-toast"
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { getCurrentUser } from '@/lib/auth';
+import { toast } from '@/hooks/use-toast';
 
 interface BudgetModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
 export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [categories, setCategories] = useState<any[]>([])
-  const [groups, setGroups] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [defaultGroupId, setDefaultGroupId] = useState<string>('');
+  const [defaultGroupName, setDefaultGroupName] = useState<string>('');
 
   useEffect(() => {
-    if (isOpen) loadData()
-  }, [isOpen])
+    if (isOpen) loadData();
+  }, [isOpen]);
 
   const loadData = async () => {
     try {
-      const user = await getCurrentUser()
-      if (!user) return
+      const user = await getCurrentUser();
+      if (!user) return;
 
       const { data: userGroups } = await supabase
-        .from("user_groups")
-        .select("group_id, groups(*)")
-        .eq("user_id", user.id)
+        .from('user_groups')
+        .select('group_id, groups(*)')
+        .eq('user_id', user.id);
 
-      if (userGroups) {
-        setGroups(userGroups.map((ug) => ug.groups).filter(Boolean))
+      if (userGroups && userGroups.length > 0) {
+        const userGroupsData = userGroups
+          .map((ug) => ug.groups)
+          .filter(Boolean);
+        setGroups(userGroupsData);
+        // Set the first group as default
+        const firstGroup = userGroupsData[0] as any;
+        if (firstGroup && firstGroup.id) {
+          setDefaultGroupId(firstGroup.id);
+          setDefaultGroupName(firstGroup.name || '');
+        }
       }
 
-      const { data: categoriesData } = await supabase.from("categories").select("*")
-      if (categoriesData) setCategories(categoriesData)
+      const { data: categoriesData } = await supabase
+        .from('categories')
+        .select('*');
+      if (categoriesData) setCategories(categoriesData);
     } catch (e) {
-      console.error("Error loading data:", e)
+      console.error('Error loading data:', e);
     }
-  }
+  };
 
   const handleSubmit = async (formData: FormData) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const user = await getCurrentUser()
-      if (!user) throw new Error("User not authenticated")
+      const user = await getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
 
-      const title = formData.get("title") as string
-      const amount = Number.parseFloat(formData.get("amount") as string)
-      const categoryId = formData.get("categoryId") as string
-      const groupId = formData.get("groupId") as string
-      const date = formData.get("date") as string
+      const title = formData.get('title') as string;
+      const amount = Number.parseFloat(formData.get('amount') as string);
+      const categoryId = formData.get('categoryId') as string;
+      const groupId = defaultGroupId; // Use default group ID
+      const date = formData.get('date') as string;
 
-      const { error } = await supabase.from("budgets").insert({
+      const { error } = await supabase.from('budgets').insert({
         title,
         amount,
         category_id: categoryId,
@@ -74,41 +93,62 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
         start_date: date,
         end_date: date,
         created_by: user.id,
-      })
-      if (error) throw error
+      });
+      if (error) throw error;
 
-      toast({ title: "Budget berhasil ditambahkan", description: "Budget baru telah disimpan." })
-      onSuccess()
-      onClose()
+      toast({
+        title: 'Budget berhasil ditambahkan',
+        description: 'Budget baru telah disimpan.',
+      });
+      onSuccess();
+      onClose();
     } catch (error: any) {
-      toast({ title: "Gagal menambahkan budget", description: error.message, variant: "destructive" })
+      toast({
+        title: 'Gagal menambahkan budget',
+        description: error.message,
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Tambah Budget</DialogTitle>
-          <DialogDescription>Buat budget baru untuk mengontrol pengeluaran Anda.</DialogDescription>
+          <DialogTitle>Tambah Pemasukan</DialogTitle>
+          <DialogDescription>
+            Buat budget baru untuk mengontrol pengeluaran Anda.
+          </DialogDescription>
         </DialogHeader>
         <form action={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Judul Budget</Label>
-              <Input id="title" name="title" placeholder="Contoh: Budget Makanan Januari" required />
+              <Label htmlFor="title">Judul Pemasukan</Label>
+              <Input
+                id="title"
+                name="title"
+                placeholder="Contoh: Budget Makanan Januari"
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="amount">Jumlah (Rp)</Label>
-              <CurrencyInput id="amount" name="amount" placeholder="1.000.000" required />
+              <CurrencyInput
+                id="amount"
+                name="amount"
+                placeholder="1.000.000"
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="groupId">Grup</Label>
-              <Select name="groupId" required>
+              <Select name="groupId" value={defaultGroupId} disabled>
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih grup" />
+                  <SelectValue
+                    placeholder={defaultGroupName || 'Memuat grup...'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {groups.map((group) => (
@@ -144,11 +184,11 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
               Batal
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Menyimpan..." : "Simpan"}
+              {isLoading ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

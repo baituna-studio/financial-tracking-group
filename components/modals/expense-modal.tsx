@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { CurrencyInput } from "@/components/form/currency-input"
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { CurrencyInput } from '@/components/form/currency-input';
 import {
   Dialog,
   DialogContent,
@@ -13,61 +13,84 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import { getCurrentUser } from "@/lib/auth"
-import { toast } from "@/hooks/use-toast"
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { getCurrentUser } from '@/lib/auth';
+import { toast } from '@/hooks/use-toast';
 
 interface ExpenseModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-export function ExpenseModal({ isOpen, onClose, onSuccess }: ExpenseModalProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [categories, setCategories] = useState<any[]>([])
-  const [groups, setGroups] = useState<any[]>([])
+export function ExpenseModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: ExpenseModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [defaultGroupId, setDefaultGroupId] = useState<string>('');
+  const [defaultGroupName, setDefaultGroupName] = useState<string>('');
 
   useEffect(() => {
-    if (isOpen) loadData()
-  }, [isOpen])
+    if (isOpen) loadData();
+  }, [isOpen]);
 
   const loadData = async () => {
     try {
-      const user = await getCurrentUser()
-      if (!user) return
+      const user = await getCurrentUser();
+      if (!user) return;
 
       const { data: userGroups } = await supabase
-        .from("user_groups")
-        .select("group_id, groups(*)")
-        .eq("user_id", user.id)
-      if (userGroups) {
-        setGroups(userGroups.map((ug) => ug.groups).filter(Boolean))
+        .from('user_groups')
+        .select('group_id, groups(*)')
+        .eq('user_id', user.id);
+      if (userGroups && userGroups.length > 0) {
+        const userGroupsData = userGroups
+          .map((ug) => ug.groups)
+          .filter(Boolean);
+        setGroups(userGroupsData);
+        // Set the first group as default
+        const firstGroup = userGroupsData[0] as any;
+        if (firstGroup && firstGroup.id) {
+          setDefaultGroupId(firstGroup.id);
+          setDefaultGroupName(firstGroup.name || '');
+        }
       }
 
-      const { data: categoriesData } = await supabase.from("categories").select("*")
-      if (categoriesData) setCategories(categoriesData)
+      const { data: categoriesData } = await supabase
+        .from('categories')
+        .select('*');
+      if (categoriesData) setCategories(categoriesData);
     } catch (e) {
-      console.error("Error loading data:", e)
+      console.error('Error loading data:', e);
     }
-  }
+  };
 
   const handleSubmit = async (formData: FormData) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const user = await getCurrentUser()
-      if (!user) throw new Error("User not authenticated")
+      const user = await getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
 
-      const title = formData.get("title") as string
-      const description = formData.get("description") as string
-      const amount = Number.parseFloat(formData.get("amount") as string)
-      const categoryId = formData.get("categoryId") as string
-      const groupId = formData.get("groupId") as string
-      const expenseDate = formData.get("expenseDate") as string
+      const title = formData.get('title') as string;
+      const description = formData.get('description') as string;
+      const amount = Number.parseFloat(formData.get('amount') as string);
+      const categoryId = formData.get('categoryId') as string;
+      const groupId = defaultGroupId; // Use default group ID
+      const expenseDate = formData.get('expenseDate') as string;
 
-      const { error } = await supabase.from("expenses").insert({
+      const { error } = await supabase.from('expenses').insert({
         title,
         description,
         amount,
@@ -75,18 +98,25 @@ export function ExpenseModal({ isOpen, onClose, onSuccess }: ExpenseModalProps) 
         group_id: groupId,
         expense_date: expenseDate,
         created_by: user.id,
-      })
-      if (error) throw error
+      });
+      if (error) throw error;
 
-      toast({ title: "Pengeluaran berhasil ditambahkan", description: "Pengeluaran baru telah disimpan." })
-      onSuccess()
-      onClose()
+      toast({
+        title: 'Pengeluaran berhasil ditambahkan',
+        description: 'Pengeluaran baru telah disimpan.',
+      });
+      onSuccess();
+      onClose();
     } catch (error: any) {
-      toast({ title: "Gagal menambahkan pengeluaran", description: error.message, variant: "destructive" })
+      toast({
+        title: 'Gagal menambahkan pengeluaran',
+        description: error.message,
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -99,21 +129,38 @@ export function ExpenseModal({ isOpen, onClose, onSuccess }: ExpenseModalProps) 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="title">Judul Pengeluaran</Label>
-              <Input id="title" name="title" placeholder="Contoh: Makan siang" required />
+              <Input
+                id="title"
+                name="title"
+                placeholder="Contoh: Makan siang"
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Deskripsi (Opsional)</Label>
-              <Textarea id="description" name="description" placeholder="Detail pengeluaran..." rows={3} />
+              <Textarea
+                id="description"
+                name="description"
+                placeholder="Detail pengeluaran..."
+                rows={3}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="amount">Jumlah (Rp)</Label>
-              <CurrencyInput id="amount" name="amount" placeholder="50.000" required />
+              <CurrencyInput
+                id="amount"
+                name="amount"
+                placeholder="50.000"
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="groupId">Grup</Label>
-              <Select name="groupId" required>
+              <Select name="groupId" value={defaultGroupId} disabled>
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih grup" />
+                  <SelectValue
+                    placeholder={defaultGroupName || 'Memuat grup...'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {groups.map((group) => (
@@ -145,7 +192,7 @@ export function ExpenseModal({ isOpen, onClose, onSuccess }: ExpenseModalProps) 
                 id="expenseDate"
                 name="expenseDate"
                 type="date"
-                defaultValue={new Date().toISOString().split("T")[0]}
+                defaultValue={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -155,11 +202,11 @@ export function ExpenseModal({ isOpen, onClose, onSuccess }: ExpenseModalProps) 
               Batal
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Menyimpan..." : "Simpan"}
+              {isLoading ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
