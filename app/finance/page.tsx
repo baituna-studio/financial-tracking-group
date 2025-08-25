@@ -429,10 +429,25 @@ export default function FinancePage() {
         {/* Budgets Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Pemasukan Bulan Ini</CardTitle>
-            <CardDescription>
-              Daftar pemasukan yang aktif untuk periode yang dipilih
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Pemasukan Bulan Ini</CardTitle>
+                <CardDescription>
+                  Daftar pemasukan yang aktif untuk periode yang dipilih
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(
+                    budgets.reduce(
+                      (sum, budget) => sum + (budget.amount || 0),
+                      0
+                    )
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">Total Pemasukan</div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {budgets.length > 0 ? (
@@ -519,10 +534,25 @@ export default function FinancePage() {
         {/* Expenses Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Daftar Pengeluaran</CardTitle>
-            <CardDescription>
-              Semua pengeluaran untuk periode yang dipilih
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Daftar Pengeluaran</CardTitle>
+                <CardDescription>
+                  Semua pengeluaran untuk periode yang dipilih
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(
+                    expenses.reduce(
+                      (sum, expense) => sum + (expense.amount || 0),
+                      0
+                    )
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">Total Pengeluaran</div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Search and Controls */}
