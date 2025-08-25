@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -74,7 +75,16 @@ export function Sidebar() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">Keuangan App</h1>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/favicon.svg"
+                alt="Financial App Logo"
+                width={40}
+                height={40}
+                className="w-10 h-10"
+              />
+              <h1 className="text-xl font-bold text-gray-900">Financial App</h1>
+            </div>
           </div>
 
           {/* Navigation */}
@@ -156,7 +166,16 @@ export function Sidebar() {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">Keuangan App</h1>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/favicon.svg"
+                alt="Financial App Logo"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+              />
+              <h1 className="text-xl font-bold text-gray-900">Financial App</h1>
+            </div>
             <Button
               variant="outline"
               size="icon"
