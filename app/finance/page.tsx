@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Download, Calendar, Trash2, Eye, Pencil } from 'lucide-react';
+import {
+  Plus,
+  Download,
+  Calendar,
+  Trash2,
+  Eye,
+  Pencil,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,6 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -84,6 +95,11 @@ export default function FinancePage() {
     null
   );
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Generate months with custom labels
   const months = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -117,6 +133,59 @@ export default function FinancePage() {
 
     return monthsArray;
   }, [profile?.month_start_day]);
+
+  // Pagination logic
+  const totalExpenses = expenses.length;
+  const totalPages = Math.ceil(totalExpenses / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentExpenses = expenses.slice(startIndex, endIndex);
+
+  // Search and sort logic
+  const filteredExpenses = useMemo(() => {
+    let filtered = [...expenses];
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (expense) =>
+          expense.title?.toLowerCase().includes(searchLower) ||
+          expense.description?.toLowerCase().includes(searchLower) ||
+          expense.categories?.name?.toLowerCase().includes(searchLower) ||
+          expense.groups?.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort by created_at date descending (newest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateB - dateA;
+    });
+
+    return filtered;
+  }, [expenses, searchTerm]);
+
+  // Update pagination for filtered data
+  const totalFilteredExpenses = filteredExpenses.length;
+  const totalFilteredPages = Math.ceil(totalFilteredExpenses / pageSize);
+  const filteredStartIndex = (currentPage - 1) * pageSize;
+  const filteredEndIndex = filteredStartIndex + pageSize;
+  const currentFilteredExpenses = filteredExpenses.slice(
+    filteredStartIndex,
+    filteredEndIndex
+  );
+
+  // Reset to first page when expenses change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [expenses.length]);
+
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   useEffect(() => {
     loadUserProfile();
@@ -360,10 +429,25 @@ export default function FinancePage() {
         {/* Budgets Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Pemasukan Bulan Ini</CardTitle>
-            <CardDescription>
-              Daftar pemasukan yang aktif untuk periode yang dipilih
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Pemasukan Bulan Ini</CardTitle>
+                <CardDescription>
+                  Daftar pemasukan yang aktif untuk periode yang dipilih
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(
+                    budgets.reduce(
+                      (sum, budget) => sum + (budget.amount || 0),
+                      0
+                    )
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">Total Pemasukan</div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {budgets.length > 0 ? (
@@ -450,12 +534,62 @@ export default function FinancePage() {
         {/* Expenses Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Daftar Pengeluaran</CardTitle>
-            <CardDescription>
-              Semua pengeluaran untuk periode yang dipilih
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Daftar Pengeluaran</CardTitle>
+                <CardDescription>
+                  Semua pengeluaran untuk periode yang dipilih
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(
+                    expenses.reduce(
+                      (sum, expense) => sum + (expense.amount || 0),
+                      0
+                    )
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">Total Pengeluaran</div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
+            {/* Search and Controls */}
+            <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Cari pengeluaran..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-full sm:w-64"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Per halaman:</span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={(value) => {
+                      setPageSize(Number(value));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
             {expenses.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
@@ -463,14 +597,18 @@ export default function FinancePage() {
                     <TableRow>
                       <TableHead>Tanggal</TableHead>
                       <TableHead>Judul</TableHead>
-                      <TableHead>Kategori</TableHead>
-                      <TableHead>Grup</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Kategori
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Grup
+                      </TableHead>
                       <TableHead className="text-right">Jumlah</TableHead>
                       <TableHead className="w-28 text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {expenses.map((expense) => (
+                    {currentFilteredExpenses.map((expense) => (
                       <TableRow key={expense.id}>
                         <TableCell className="font-medium">
                           {formatDate(expense.expense_date)}
@@ -478,14 +616,17 @@ export default function FinancePage() {
                         <TableCell>
                           <div>
                             <p className="font-medium">{expense.title}</p>
+                            <p className="text-xs text-gray-500 md:hidden">
+                              {expense.categories?.name || 'Lainnya'}
+                            </p>
                             {expense.description && (
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-gray-600 hidden md:block">
                                 {expense.description}
                               </p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <div className="flex items-center gap-2">
                             <div
                               className="w-3 h-3 rounded-full"
@@ -497,7 +638,7 @@ export default function FinancePage() {
                             <span>{expense.categories?.name || 'Lainnya'}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <Badge variant="secondary">
                             {expense.groups?.name || 'Tidak ada grup'}
                           </Badge>
@@ -506,7 +647,38 @@ export default function FinancePage() {
                           {formatCurrency(expense.amount)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
+                          {/* Mobile: Action List */}
+                          <div className="md:hidden">
+                            <Select>
+                              <SelectTrigger className="w-20 h-8">
+                                <span className="text-xs">Aksi</span>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  value="view"
+                                  onClick={() => setViewExpense(expense)}
+                                >
+                                  Lihat
+                                </SelectItem>
+                                <SelectItem
+                                  value="edit"
+                                  onClick={() => setEditExpense(expense)}
+                                >
+                                  Edit
+                                </SelectItem>
+                                <SelectItem
+                                  value="delete"
+                                  onClick={() => handleDeleteExpense(expense)}
+                                  className="text-red-600"
+                                >
+                                  Hapus
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Desktop: Individual Action Buttons */}
+                          <div className="hidden md:flex items-center justify-center gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -542,6 +714,81 @@ export default function FinancePage() {
                     ))}
                   </TableBody>
                 </Table>
+                {/* Always show pagination info for debugging */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>
+                      Menampilkan {filteredStartIndex + 1}-
+                      {Math.min(filteredEndIndex, totalFilteredExpenses)} dari{' '}
+                      {totalFilteredExpenses} pengeluaran
+                    </span>
+                    {/* Debug info */}
+                    <span className="text-xs text-gray-400">
+                      (Halaman {currentPage} dari {totalFilteredPages})
+                    </span>
+                  </div>
+                  {totalFilteredPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(1, prev - 1))
+                        }
+                        disabled={currentPage === 1}
+                        className="w-8 h-8 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from(
+                          { length: Math.min(5, totalFilteredPages) },
+                          (_, i) => {
+                            let pageNum;
+                            if (totalFilteredPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalFilteredPages - 2) {
+                              pageNum = totalFilteredPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={
+                                  currentPage === pageNum
+                                    ? 'default'
+                                    : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setCurrentPage(pageNum)}
+                                className="w-8 h-8 p-0"
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          }
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(totalFilteredPages, prev + 1)
+                          )
+                        }
+                        disabled={currentPage === totalFilteredPages}
+                        className="w-8 h-8 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="text-center py-8 flex flex-col items-center justify-center">
