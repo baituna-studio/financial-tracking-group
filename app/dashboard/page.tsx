@@ -42,6 +42,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { TransactionListModal } from '@/components/modals/transaction-list-modal';
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +65,11 @@ export default function DashboardPage() {
     recentExpenses: [] as any[],
     recentIncome: [] as any[],
   });
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [transactionModalOpen, setTransactionModalOpen] = useState(false);
+  const [transactionType, setTransactionType] = useState<'expense' | 'income'>(
+    'expense'
+  );
 
   // Generate months with custom labels
   const months = useMemo(() => {
@@ -255,6 +261,15 @@ export default function DashboardPage() {
     exportToExcel(exportData, `Laporan-Keuangan-${selectedMonth}`);
   };
 
+  const handleViewTransactions = (
+    category: any,
+    type: 'expense' | 'income'
+  ) => {
+    setSelectedCategory(category);
+    setTransactionType(type);
+    setTransactionModalOpen(true);
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -382,9 +397,12 @@ export default function DashboardPage() {
                         className="w-4 h-4 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="text-sm font-medium">
+                      <button
+                        onClick={() => handleViewTransactions(item, 'expense')}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
                         {item.category}
-                      </span>
+                      </button>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold">
@@ -425,9 +443,12 @@ export default function DashboardPage() {
                         className="w-4 h-4 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="text-sm font-medium">
+                      <button
+                        onClick={() => handleViewTransactions(item, 'income')}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
                         {item.category}
-                      </span>
+                      </button>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-green-600">
@@ -616,6 +637,14 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+      <TransactionListModal
+        isOpen={transactionModalOpen}
+        onClose={() => setTransactionModalOpen(false)}
+        category={selectedCategory}
+        type={transactionType}
+        selectedMonth={selectedMonth}
+        monthStartDay={profile?.month_start_day || 1}
+      />
     </MainLayout>
   );
 }

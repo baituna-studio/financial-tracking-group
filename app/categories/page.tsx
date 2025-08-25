@@ -32,6 +32,7 @@ import { toast } from '@/hooks/use-toast';
 import { CategoryAddModal } from '@/components/modals/category-add-modal';
 import { CategoryEditModal } from '@/components/modals/category-edit-modal';
 import { CategoryViewModal } from '@/components/modals/category-view-modal';
+import { TransactionListModal } from '@/components/modals/transaction-list-modal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,6 +69,11 @@ export default function CategoriesPage() {
       '0'
     )}`;
   });
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [transactionModalOpen, setTransactionModalOpen] = useState(false);
+  const [transactionType, setTransactionType] = useState<'expense' | 'income'>(
+    'expense'
+  );
 
   // Generate months with custom labels
   const months = useMemo(() => {
@@ -176,8 +182,17 @@ export default function CategoriesPage() {
         .lte('expense_date', end);
       if (eErr) throw eErr;
 
+      // fetch incomes for the selected month to compute totals by category
+      const { data: incomesData, error: iErr } = await supabase
+        .from('budgets')
+        .select('id, amount, category_id')
+        .in('group_id', groupIds)
+        .gte('start_date', start)
+        .lte('start_date', end);
+      if (iErr) throw iErr;
+
       const map: Record<string, { total: number; count: number }> = {};
-      for (const ex of expensesData || []) {
+      for (const ex of (expensesData || []).concat(incomesData || [])) {
         const key = ex.category_id;
         if (!map[key]) map[key] = { total: 0, count: 0 };
         map[key].total += Number(ex.amount || 0);
@@ -198,6 +213,12 @@ export default function CategoriesPage() {
 
   const handleDelete = (category: any) => {
     setPendingDeleteCategory(category);
+  };
+
+  const handleViewTransactions = (category: any) => {
+    setSelectedCategory(category);
+    setTransactionType(category.type === 'Pengeluaran' ? 'expense' : 'income');
+    setTransactionModalOpen(true);
   };
 
   const doDelete = async (id: string) => {
@@ -274,7 +295,8 @@ export default function CategoriesPage() {
           return (
             <Card
               key={category.id}
-              className="hover:shadow-md transition-shadow"
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleViewTransactions(category)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -298,7 +320,10 @@ export default function CategoriesPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => setViewCategory(category)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewCategory(category);
+                      }}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -306,7 +331,10 @@ export default function CategoriesPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => setEditCategory(category)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditCategory(category);
+                      }}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -314,7 +342,10 @@ export default function CategoriesPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-red-600"
-                      onClick={() => handleDelete(category)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(category);
+                      }}
                       disabled={deletingId === category.id}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -427,6 +458,14 @@ export default function CategoriesPage() {
           isOpen={!!viewCategory}
           onClose={() => setViewCategory(null)}
           category={viewCategory}
+        />
+        <TransactionListModal
+          isOpen={transactionModalOpen}
+          onClose={() => setTransactionModalOpen(false)}
+          category={selectedCategory}
+          type={transactionType}
+          selectedMonth={selectedMonth}
+          monthStartDay={profile?.month_start_day || 1}
         />
       </div>
       <AlertDialog
