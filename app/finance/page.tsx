@@ -597,8 +597,12 @@ export default function FinancePage() {
                     <TableRow>
                       <TableHead>Tanggal</TableHead>
                       <TableHead>Judul</TableHead>
-                      <TableHead>Kategori</TableHead>
-                      <TableHead>Grup</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Kategori
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Grup
+                      </TableHead>
                       <TableHead className="text-right">Jumlah</TableHead>
                       <TableHead className="w-28 text-center">Aksi</TableHead>
                     </TableRow>
@@ -612,14 +616,17 @@ export default function FinancePage() {
                         <TableCell>
                           <div>
                             <p className="font-medium">{expense.title}</p>
+                            <p className="text-xs text-gray-500 md:hidden">
+                              {expense.categories?.name || 'Lainnya'}
+                            </p>
                             {expense.description && (
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-gray-600 hidden md:block">
                                 {expense.description}
                               </p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <div className="flex items-center gap-2">
                             <div
                               className="w-3 h-3 rounded-full"
@@ -631,7 +638,7 @@ export default function FinancePage() {
                             <span>{expense.categories?.name || 'Lainnya'}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <Badge variant="secondary">
                             {expense.groups?.name || 'Tidak ada grup'}
                           </Badge>
@@ -640,7 +647,38 @@ export default function FinancePage() {
                           {formatCurrency(expense.amount)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
+                          {/* Mobile: Action List */}
+                          <div className="md:hidden">
+                            <Select>
+                              <SelectTrigger className="w-20 h-8">
+                                <span className="text-xs">Aksi</span>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  value="view"
+                                  onClick={() => setViewExpense(expense)}
+                                >
+                                  Lihat
+                                </SelectItem>
+                                <SelectItem
+                                  value="edit"
+                                  onClick={() => setEditExpense(expense)}
+                                >
+                                  Edit
+                                </SelectItem>
+                                <SelectItem
+                                  value="delete"
+                                  onClick={() => handleDeleteExpense(expense)}
+                                  className="text-red-600"
+                                >
+                                  Hapus
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Desktop: Individual Action Buttons */}
+                          <div className="hidden md:flex items-center justify-center gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
