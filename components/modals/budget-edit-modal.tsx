@@ -61,7 +61,8 @@ export function BudgetEditModal({
 
       const { data: categoriesData } = await supabase
         .from('categories')
-        .select('*');
+        .select('*')
+        .eq('type', 'Pemasukan'); // Only income categories
       if (categoriesData) setCategories(categoriesData);
     } catch (e) {
       console.error('Error loading data:', e);

@@ -66,7 +66,8 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
 
       const { data: categoriesData } = await supabase
         .from('categories')
-        .select('*');
+        .select('*')
+        .eq('type', 'Pemasukan');
       if (categoriesData) setCategories(categoriesData);
     } catch (e) {
       console.error('Error loading data:', e);
@@ -176,7 +177,13 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="date">Tanggal</Label>
-              <Input id="date" name="date" type="date" required />
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                defaultValue={new Date().toISOString().split('T')[0]}
+                required
+              />
             </div>
           </div>
           <DialogFooter>

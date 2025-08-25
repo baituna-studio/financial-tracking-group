@@ -70,7 +70,8 @@ export function ExpenseModal({
 
       const { data: categoriesData } = await supabase
         .from('categories')
-        .select('*');
+        .select('*')
+        .eq('type', 'Pengeluaran');
       if (categoriesData) setCategories(categoriesData);
     } catch (e) {
       console.error('Error loading data:', e);
