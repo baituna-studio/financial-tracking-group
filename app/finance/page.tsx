@@ -218,17 +218,18 @@ export default function FinancePage() {
   };
 
   const handleExportExpenses = () => {
-    const exportData = expenses.map((expense) => ({
-      Tanggal: expense.expense_date,
+    const exportData = [...expenses, ...budgets].map((expense) => ({
+      Tanggal: expense.expense_date || expense.start_date,
       Judul: expense.title,
       Deskripsi: expense.description || '',
       Kategori: expense.categories?.name || 'Lainnya',
       Grup: expense.groups?.name || '',
       Jumlah: expense.amount,
-      'Dibuat oleh': expense.profiles?.full_name || '',
+      'Dibuat Oleh': expense.profiles?.full_name || '',
+      SortDate: expense.expense_date || expense.start_date,
     }));
 
-    exportToExcel(exportData, `Pengeluaran-${selectedMonth}`);
+    exportToExcel(exportData, `Pemasukan-Pengeluaran-${selectedMonth}`);
   };
 
   const doDeleteBudget = async (id: string) => {
@@ -237,7 +238,7 @@ export default function FinancePage() {
       const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Gagal menghapus budget');
+        throw new Error(data.error || 'Gagal menghapus pemasukan');
       }
       toast({
         title: 'Pemasukan dihapus',
@@ -324,7 +325,11 @@ export default function FinancePage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleExportExpenses} variant="outline">
+            <Button
+              onClick={handleExportExpenses}
+              variant="outline"
+              title="Export Pengeluaran dan Pemasukan"
+            >
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
@@ -335,6 +340,7 @@ export default function FinancePage() {
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
             onClick={() => setIsBudgetModalOpen(true)}
+            title="Tambah Pemasukan"
             className="flex-1 sm:flex-none"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -343,6 +349,7 @@ export default function FinancePage() {
           <Button
             onClick={() => setIsExpenseModalOpen(true)}
             variant="outline"
+            title="Tambah Pengeluaran"
             className="flex-1 sm:flex-none"
           >
             <Plus className="mr-2 h-4 w-4" />
