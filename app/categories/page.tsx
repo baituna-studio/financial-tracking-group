@@ -305,7 +305,13 @@ export default function CategoriesPage() {
           return (
             <Card
               key={category.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              className={`hover:shadow-md transition-shadow cursor-pointer ${
+                category.type === 'Pengeluaran'
+                  ? 'border-l-4 border-l-red-500'
+                  : category.type === 'Pemasukan'
+                  ? 'border-l-4 border-l-green-500'
+                  : 'border-l-4 border-l-blue-500'
+              }`}
               onClick={() => handleViewTransactions(category)}
             >
               <CardHeader className="pb-3">
@@ -374,7 +380,16 @@ export default function CategoriesPage() {
                         : 'Total Transaksi'}
                       :
                     </span>
-                    <Badge variant="secondary" className="font-semibold">
+                    <Badge
+                      variant="secondary"
+                      className={`font-semibold ${
+                        category.type === 'Pengeluaran'
+                          ? 'bg-red-100 text-red-700 border-red-200'
+                          : category.type === 'Pemasukan'
+                          ? 'bg-green-100 text-green-700 border-green-200'
+                          : 'bg-blue-100 text-blue-700 border-blue-200'
+                      }`}
+                    >
                       {formatCurrency(stats.total)}
                     </Badge>
                   </div>
@@ -431,9 +446,24 @@ export default function CategoriesPage() {
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-3 sm:w-auto">
-            <TabsTrigger value="Pengeluaran">Pengeluaran</TabsTrigger>
-            <TabsTrigger value="Pemasukan">Pemasukan</TabsTrigger>
-            <TabsTrigger value="Dompet">Dompet</TabsTrigger>
+            <TabsTrigger
+              value="Pengeluaran"
+              className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 data-[state=active]:border-red-200 hover:bg-red-50"
+            >
+              Pengeluaran
+            </TabsTrigger>
+            <TabsTrigger
+              value="Pemasukan"
+              className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 data-[state=active]:border-green-200 hover:bg-green-50"
+            >
+              Pemasukan
+            </TabsTrigger>
+            <TabsTrigger
+              value="Dompet"
+              className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200 hover:bg-blue-50"
+            >
+              Dompet
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="Pengeluaran" className="mt-6">
             {isLoading ? (
