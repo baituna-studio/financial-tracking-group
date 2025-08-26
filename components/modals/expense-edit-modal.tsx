@@ -41,6 +41,7 @@ export function ExpenseEditModal({
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [walletCategories, setWalletCategories] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen) loadData();
@@ -64,6 +65,17 @@ export function ExpenseEditModal({
         .select('*')
         .eq('type', 'Pengeluaran'); // Only expense categories
       if (categoriesData) setCategories(categoriesData);
+
+      // Get wallet categories for user's groups
+      if (userGroups && userGroups.length > 0) {
+        const groupIds = userGroups.map((ug) => ug.group_id);
+        const { data: walletCategoriesData } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('type', 'Dompet')
+          .in('group_id', groupIds);
+        if (walletCategoriesData) setWalletCategories(walletCategoriesData);
+      }
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -77,22 +89,42 @@ export function ExpenseEditModal({
       const description = formData.get('description') as string;
       const amount = Number.parseFloat(formData.get('amount') as string);
       const categoryId = formData.get('categoryId') as string;
+      const walletId = formData.get('walletId') as string;
       const groupId = formData.get('groupId') as string;
       const expenseDate = formData.get('expenseDate') as string;
+
+      // Debug logging
+      console.log('Form data:', {
+        title,
+        description,
+        amount,
+        categoryId,
+        walletId,
+        groupId,
+        expenseDate,
+      });
+
+      const updateData = {
+        title,
+        description,
+        amount,
+        category_id: categoryId,
+        wallet_id: walletId === 'none' ? null : walletId || null, // Convert 'none' to null
+        group_id: groupId,
+        expense_date: expenseDate,
+      };
+
+      console.log('Update data being sent:', updateData);
 
       const res = await fetch(`/api/expenses/${expense.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          description,
-          amount,
-          category_id: categoryId,
-          group_id: groupId,
-          expense_date: expenseDate,
-        }),
+        body: JSON.stringify(updateData),
       });
+
       const data = await res.json();
+      console.log('API response:', data);
+
       if (!res.ok || !data.ok)
         throw new Error(data.error || 'Gagal memperbarui pengeluaran');
 
@@ -103,6 +135,7 @@ export function ExpenseEditModal({
       onSuccess();
       onClose();
     } catch (error: any) {
+      console.error('Error updating expense:', error);
       toast({
         title: 'Gagal memperbarui pengeluaran',
         description: error.message,
@@ -182,6 +215,25 @@ export function ExpenseEditModal({
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="walletId">Dari Dompet (Opsional)</Label>
+                <Select
+                  name="walletId"
+                  defaultValue={expense.wallet_id || 'none'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih dompet (opsional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tidak ada dompet</SelectItem>
+                    {walletCategories.map((wallet) => (
+                      <SelectItem key={wallet.id} value={wallet.id}>
+                        {wallet.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

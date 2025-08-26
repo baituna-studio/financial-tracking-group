@@ -54,9 +54,9 @@ export default function CategoriesPage() {
   const [editCategory, setEditCategory] = useState<any | null>(null);
   const [viewCategory, setViewCategory] = useState<any | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'Pengeluaran' | 'Pemasukan'>(
-    'Pengeluaran'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'Pengeluaran' | 'Pemasukan' | 'Dompet'
+  >('Pengeluaran');
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<
     any | null
   >(null);
@@ -217,7 +217,13 @@ export default function CategoriesPage() {
 
   const handleViewTransactions = (category: any) => {
     setSelectedCategory(category);
-    setTransactionType(category.type === 'Pengeluaran' ? 'expense' : 'income');
+    if (category.type === 'Pengeluaran') {
+      setTransactionType('expense');
+    } else if (category.type === 'Pemasukan') {
+      setTransactionType('income');
+    } else if (category.type === 'Dompet') {
+      setTransactionType('expense'); // Wallet transactions are typically expenses
+    }
     setTransactionModalOpen(true);
   };
 
@@ -265,6 +271,10 @@ export default function CategoriesPage() {
     () => categories.filter((c) => c.type === 'Pengeluaran'),
     [categories]
   );
+  const walletCategories = useMemo(
+    () => categories.filter((c) => c.type === 'Dompet'),
+    [categories]
+  );
 
   const renderGrid = (items: any[]) => {
     if (items.length === 0) {
@@ -295,7 +305,13 @@ export default function CategoriesPage() {
           return (
             <Card
               key={category.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              className={`hover:shadow-md transition-shadow cursor-pointer ${
+                category.type === 'Pengeluaran'
+                  ? 'border-l-4 border-l-red-500'
+                  : category.type === 'Pemasukan'
+                  ? 'border-l-4 border-l-green-500'
+                  : 'border-l-4 border-l-blue-500'
+              }`}
               onClick={() => handleViewTransactions(category)}
             >
               <CardHeader className="pb-3">
@@ -359,10 +375,21 @@ export default function CategoriesPage() {
                     <span className="text-sm text-gray-500">
                       {category.type === 'Pengeluaran'
                         ? 'Total Pengeluaran'
-                        : 'Total Pemasukan'}
+                        : category.type === 'Pemasukan'
+                        ? 'Total Pemasukan'
+                        : 'Total Transaksi'}
                       :
                     </span>
-                    <Badge variant="secondary" className="font-semibold">
+                    <Badge
+                      variant="secondary"
+                      className={`font-semibold ${
+                        category.type === 'Pengeluaran'
+                          ? 'bg-red-100 text-red-700 border-red-200'
+                          : category.type === 'Pemasukan'
+                          ? 'bg-green-100 text-green-700 border-green-200'
+                          : 'bg-blue-100 text-blue-700 border-blue-200'
+                      }`}
+                    >
                       {formatCurrency(stats.total)}
                     </Badge>
                   </div>
@@ -418,9 +445,25 @@ export default function CategoriesPage() {
           onValueChange={(v) => setActiveTab(v as any)}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2 sm:w-auto">
-            <TabsTrigger value="Pengeluaran">Pengeluaran</TabsTrigger>
-            <TabsTrigger value="Pemasukan">Pemasukan</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 sm:w-auto">
+            <TabsTrigger
+              value="Pengeluaran"
+              className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 data-[state=active]:border-red-200 hover:bg-red-50"
+            >
+              Pengeluaran
+            </TabsTrigger>
+            <TabsTrigger
+              value="Pemasukan"
+              className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 data-[state=active]:border-green-200 hover:bg-green-50"
+            >
+              Pemasukan
+            </TabsTrigger>
+            <TabsTrigger
+              value="Dompet"
+              className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200 hover:bg-blue-50"
+            >
+              Dompet
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="Pengeluaran" className="mt-6">
             {isLoading ? (
@@ -438,6 +481,15 @@ export default function CategoriesPage() {
               </div>
             ) : (
               renderGrid(incomeCategories)
+            )}
+          </TabsContent>
+          <TabsContent value="Dompet" className="mt-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              renderGrid(walletCategories)
             )}
           </TabsContent>
         </Tabs>

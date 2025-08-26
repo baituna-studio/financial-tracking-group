@@ -149,7 +149,7 @@ export default function SettingsPage() {
           amount,
           expense_date,
           created_at,
-          categories(name),
+          categories!expenses_category_id_fkey(name),
           groups(name)
         `
         )
@@ -170,7 +170,7 @@ export default function SettingsPage() {
             end_date,
             created_at,
             created_by,
-            categories(name),
+            categories!budgets_category_id_fkey(name),
             groups(name)
           `
           )
