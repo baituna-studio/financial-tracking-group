@@ -41,6 +41,7 @@ import {
 import { MainLayout } from '@/components/layout/main-layout';
 import { BudgetModal } from '@/components/modals/budget-modal';
 import { ExpenseModal } from '@/components/modals/expense-modal';
+import { WalletTransferModal } from '@/components/modals/wallet-transfer-modal';
 import { BudgetViewModal } from '@/components/modals/budget-view-modal';
 import { BudgetEditModal } from '@/components/modals/budget-edit-modal';
 import { ExpenseViewModal } from '@/components/modals/expense-view-modal';
@@ -74,6 +75,8 @@ export default function FinancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isWalletTransferModalOpen, setIsWalletTransferModalOpen] =
+    useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     // Default to current month, will be updated when profile loads
     const now = new Date();
@@ -426,9 +429,7 @@ export default function FinancePage() {
             Tambah Pengeluaran
           </Button>
           <Button
-            onClick={() => {
-              /* TODO: Add wallet transfer modal */
-            }}
+            onClick={() => setIsWalletTransferModalOpen(true)}
             variant="outline"
             title="Pindah Dompet"
             className="flex-1 sm:flex-none border-blue-500 text-blue-600 hover:bg-blue-50 hover:border-blue-600"
@@ -829,6 +830,11 @@ export default function FinancePage() {
         <ExpenseModal
           isOpen={isExpenseModalOpen}
           onClose={() => setIsExpenseModalOpen(false)}
+          onSuccess={loadFinanceData}
+        />
+        <WalletTransferModal
+          isOpen={isWalletTransferModalOpen}
+          onClose={() => setIsWalletTransferModalOpen(false)}
           onSuccess={loadFinanceData}
         />
 
