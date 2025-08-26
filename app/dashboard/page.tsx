@@ -858,7 +858,19 @@ export default function DashboardPage() {
                         ]}
                         labelFormatter={(label) => `Kategori: ${label}`}
                       />
-                      <Legend />
+                      <Legend
+                        formatter={(value, entry, index) => {
+                          const data = dashboardData.expensesByCategory[index];
+                          const percentage =
+                            dashboardData.totalExpenses > 0
+                              ? (
+                                  (data.amount / dashboardData.totalExpenses) *
+                                  100
+                                ).toFixed(1)
+                              : '0.0';
+                          return `${data.category} ${percentage}%`;
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -905,7 +917,19 @@ export default function DashboardPage() {
                         ]}
                         labelFormatter={(label) => `Kategori: ${label}`}
                       />
-                      <Legend />
+                      <Legend
+                        formatter={(value, entry, index) => {
+                          const data = dashboardData.incomeByCategory[index];
+                          const percentage =
+                            dashboardData.totalIncome > 0
+                              ? (
+                                  (data.amount / dashboardData.totalIncome) *
+                                  100
+                                ).toFixed(1)
+                              : '0.0';
+                          return `${data.category} ${percentage}%`;
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
