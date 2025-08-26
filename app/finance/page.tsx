@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -410,7 +411,7 @@ export default function FinancePage() {
           <Button
             onClick={() => setIsBudgetModalOpen(true)}
             title="Tambah Pemasukan"
-            className="flex-1 sm:flex-none"
+            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white border-green-600"
           >
             <Plus className="mr-2 h-4 w-4" />
             Tambah Pemasukan
@@ -419,10 +420,21 @@ export default function FinancePage() {
             onClick={() => setIsExpenseModalOpen(true)}
             variant="outline"
             title="Tambah Pengeluaran"
-            className="flex-1 sm:flex-none"
+            className="flex-1 sm:flex-none border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600"
           >
             <Plus className="mr-2 h-4 w-4" />
             Tambah Pengeluaran
+          </Button>
+          <Button
+            onClick={() => {
+              /* TODO: Add wallet transfer modal */
+            }}
+            variant="outline"
+            title="Pindah Dompet"
+            className="flex-1 sm:flex-none border-blue-500 text-blue-600 hover:bg-blue-50 hover:border-blue-600"
+          >
+            <ArrowRightLeft className="mr-2 h-4 w-4" />
+            Pindah Dompet
           </Button>
         </div>
 
