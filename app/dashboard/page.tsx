@@ -515,9 +515,9 @@ export default function DashboardPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="3">3</SelectItem>
                         <SelectItem value="5">5</SelectItem>
                         <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -822,9 +822,9 @@ export default function DashboardPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="3">3</SelectItem>
                         <SelectItem value="5">5</SelectItem>
                         <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

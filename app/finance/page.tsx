@@ -46,6 +46,8 @@ import { BudgetViewModal } from '@/components/modals/budget-view-modal';
 import { BudgetEditModal } from '@/components/modals/budget-edit-modal';
 import { ExpenseViewModal } from '@/components/modals/expense-view-modal';
 import { ExpenseEditModal } from '@/components/modals/expense-edit-modal';
+import { WalletTransferViewModal } from '@/components/modals/wallet-transfer-view-modal';
+import { WalletTransferEditModal } from '@/components/modals/wallet-transfer-edit-modal';
 import { supabase } from '@/lib/supabase';
 import { getCurrentUser, getUserProfile } from '@/lib/auth';
 import {
@@ -111,12 +113,12 @@ export default function FinancePage() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Wallet transfer pagination state
   const [walletTransferPage, setWalletTransferPage] = useState(1);
-  const [walletTransferPageSize, setWalletTransferPageSize] = useState(10);
+  const [walletTransferPageSize, setWalletTransferPageSize] = useState(5);
   const [walletTransferSearchTerm, setWalletTransferSearchTerm] = useState('');
 
   // Generate months with custom labels
@@ -1308,6 +1310,17 @@ export default function FinancePage() {
           onClose={() => setEditExpense(null)}
           onSuccess={loadFinanceData}
           expense={editExpense}
+        />
+        <WalletTransferViewModal
+          isOpen={!!viewWalletTransfer}
+          onClose={() => setViewWalletTransfer(null)}
+          transfer={viewWalletTransfer}
+        />
+        <WalletTransferEditModal
+          isOpen={!!editWalletTransfer}
+          onClose={() => setEditWalletTransfer(null)}
+          onSuccess={loadFinanceData}
+          transfer={editWalletTransfer}
         />
         <AlertDialog
           open={!!pendingDeleteBudget}
