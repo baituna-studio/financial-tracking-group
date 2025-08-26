@@ -34,6 +34,7 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [walletCategories, setWalletCategories] = useState<any[]>([]);
   const [defaultGroupId, setDefaultGroupId] = useState<string>('');
   const [defaultGroupName, setDefaultGroupName] = useState<string>('');
 
@@ -69,6 +70,17 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
         .select('*')
         .eq('type', 'Pemasukan');
       if (categoriesData) setCategories(categoriesData);
+
+      // Get wallet categories for user's groups
+      if (userGroups && userGroups.length > 0) {
+        const groupIds = userGroups.map((ug) => ug.group_id);
+        const { data: walletCategoriesData } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('type', 'Dompet')
+          .in('group_id', groupIds);
+        if (walletCategoriesData) setWalletCategories(walletCategoriesData);
+      }
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -83,6 +95,7 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
       const title = formData.get('title') as string;
       const amount = Number.parseFloat(formData.get('amount') as string);
       const categoryId = formData.get('categoryId') as string;
+      const walletId = formData.get('walletId') as string;
       const groupId = defaultGroupId; // Use default group ID
       const date = formData.get('date') as string;
 
@@ -90,6 +103,7 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
         title,
         amount,
         category_id: categoryId,
+        wallet_id: walletId || null, // Allow null if no wallet selected
         group_id: groupId,
         start_date: date,
         end_date: date,
@@ -170,6 +184,21 @@ export function BudgetModal({ isOpen, onClose, onSuccess }: BudgetModalProps) {
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="walletId">Ke Dompet (Opsional)</Label>
+              <Select name="walletId">
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih dompet (opsional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {walletCategories.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      {wallet.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

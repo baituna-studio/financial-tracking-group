@@ -256,7 +256,9 @@ export default function DashboardPage() {
       // Budgets: treat as single-date entries (start_date inside month)
       const { data: budgets, error: bErr } = await supabase
         .from('budgets')
-        .select('amount, start_date, categories(name, color)')
+        .select(
+          'amount, start_date, categories!budgets_category_id_fkey(name, color)'
+        )
         .in('group_id', groupIds)
         .gte('start_date', start)
         .lte('start_date', end);
@@ -269,7 +271,7 @@ export default function DashboardPage() {
       const { data: expenses, error: eErr } = await supabase
         .from('expenses')
         .select(
-          'amount, title, expense_date, created_at, categories(name, color)'
+          'amount, title, expense_date, created_at, categories!expenses_category_id_fkey(name, color)'
         )
         .in('group_id', groupIds)
         .gte('expense_date', start)
@@ -284,7 +286,7 @@ export default function DashboardPage() {
       const { data: income, error: iErr } = await supabase
         .from('budgets')
         .select(
-          'amount, title, start_date, created_at, categories(name, color)'
+          'amount, title, start_date, created_at, categories!budgets_category_id_fkey(name, color)'
         )
         .in('group_id', groupIds)
         .gte('start_date', start)

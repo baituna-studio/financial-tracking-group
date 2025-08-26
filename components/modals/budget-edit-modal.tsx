@@ -40,6 +40,7 @@ export function BudgetEditModal({
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const [walletCategories, setWalletCategories] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen) loadData();
@@ -64,6 +65,17 @@ export function BudgetEditModal({
         .select('*')
         .eq('type', 'Pemasukan'); // Only income categories
       if (categoriesData) setCategories(categoriesData);
+
+      // Get wallet categories for user's groups
+      if (userGroups && userGroups.length > 0) {
+        const groupIds = userGroups.map((ug) => ug.group_id);
+        const { data: walletCategoriesData } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('type', 'Dompet')
+          .in('group_id', groupIds);
+        if (walletCategoriesData) setWalletCategories(walletCategoriesData);
+      }
     } catch (e) {
       console.error('Error loading data:', e);
     }
@@ -77,6 +89,7 @@ export function BudgetEditModal({
       const amount = Number.parseFloat(formData.get('amount') as string);
       const groupId = formData.get('groupId') as string;
       const categoryId = formData.get('categoryId') as string;
+      const walletId = formData.get('walletId') as string;
       const date = formData.get('date') as string;
 
       const res = await fetch(`/api/budgets/${budget.id}`, {
@@ -87,6 +100,7 @@ export function BudgetEditModal({
           amount,
           group_id: groupId,
           category_id: categoryId,
+          wallet_id: walletId || null, // Allow null if no wallet selected
           start_date: date,
           end_date: date,
         }),
@@ -172,6 +186,21 @@ export function BudgetEditModal({
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="walletId">Ke Dompet (Opsional)</Label>
+                <Select name="walletId" defaultValue={budget.wallet_id}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih dompet (opsional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {walletCategories.map((wallet) => (
+                      <SelectItem key={wallet.id} value={wallet.id}>
+                        {wallet.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

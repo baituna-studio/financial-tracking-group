@@ -188,6 +188,7 @@ export default function FinancePage() {
           expense.title?.toLowerCase().includes(searchLower) ||
           expense.description?.toLowerCase().includes(searchLower) ||
           expense.categories?.name?.toLowerCase().includes(searchLower) ||
+          (expense.wallet?.name?.toLowerCase() || '').includes(searchLower) ||
           expense.groups?.name?.toLowerCase().includes(searchLower)
       );
     }
@@ -334,8 +335,9 @@ export default function FinancePage() {
         .select(
           `
           *,
-          categories(name, color),
-          groups(name)
+          categories!budgets_category_id_fkey(name, color),
+          groups(name),
+          wallet:categories!budgets_wallet_id_fkey(name, color)
         `
         )
         .in('group_id', groupIds)
@@ -348,9 +350,10 @@ export default function FinancePage() {
         .select(
           `
           *,
-          categories(name, color),
+          categories!expenses_category_id_fkey(name, color),
           groups(name),
-          profiles(full_name)
+          profiles(full_name),
+          wallet:categories!expenses_wallet_id_fkey(name, color)
         `
         )
         .in('group_id', groupIds)
@@ -638,6 +641,9 @@ export default function FinancePage() {
                       <TableHead className="hidden md:table-cell">
                         Kategori
                       </TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Dari Dompet
+                      </TableHead>
                       <TableHead className="hidden lg:table-cell">
                         Grup
                       </TableHead>
@@ -655,7 +661,8 @@ export default function FinancePage() {
                           <div>
                             <p className="font-medium">{expense.title}</p>
                             <p className="text-xs text-gray-500 md:hidden">
-                              {expense.categories?.name || 'Lainnya'}
+                              {expense.categories?.name || 'Lainnya'} •{' '}
+                              {expense.wallet?.name || 'Tidak ada dompet'}
                             </p>
                             {expense.description && (
                               <p className="text-sm text-gray-600 hidden md:block">
@@ -674,6 +681,20 @@ export default function FinancePage() {
                               }}
                             />
                             <span>{expense.categories?.name || 'Lainnya'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  expense.wallet?.color || '#6B7280',
+                              }}
+                            />
+                            <span>
+                              {expense.wallet?.name || 'Tidak ada dompet'}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
@@ -1208,7 +1229,8 @@ export default function FinancePage() {
                       <div>
                         <h4 className="font-medium">{budget.title}</h4>
                         <p className="text-sm text-gray-600">
-                          {budget.categories?.name} • {budget.groups?.name}
+                          {budget.categories?.name} • {budget.groups?.name} •{' '}
+                          {budget.wallet?.name || 'Tidak ada dompet'}
                         </p>
                         <p className="text-xs text-gray-500">
                           {formatDate(budget.start_date)} -{' '}

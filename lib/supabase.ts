@@ -127,6 +127,7 @@ export type Database = {
           title: string | null;
           amount: number | null;
           category_id: string | null;
+          wallet_id: string | null;
           group_id: string | null;
           start_date: string | null;
           end_date: string | null;
@@ -139,6 +140,7 @@ export type Database = {
           title?: string | null;
           amount?: number | null;
           category_id?: string | null;
+          wallet_id?: string | null;
           group_id?: string | null;
           start_date?: string | null;
           end_date?: string | null;
@@ -151,6 +153,7 @@ export type Database = {
           title?: string | null;
           amount?: number | null;
           category_id?: string | null;
+          wallet_id?: string | null;
           group_id?: string | null;
           start_date?: string | null;
           end_date?: string | null;
@@ -166,6 +169,7 @@ export type Database = {
           description: string | null;
           amount: number | null;
           category_id: string | null;
+          wallet_id: string | null;
           group_id: string | null;
           expense_date: string | null;
           created_by: string | null;
@@ -178,6 +182,7 @@ export type Database = {
           description?: string | null;
           amount?: number | null;
           category_id?: string | null;
+          wallet_id?: string | null;
           group_id?: string | null;
           expense_date?: string | null;
           created_by?: string | null;
@@ -190,6 +195,7 @@ export type Database = {
           description?: string | null;
           amount?: number | null;
           category_id?: string | null;
+          wallet_id?: string | null;
           group_id?: string | null;
           expense_date?: string | null;
           created_by?: string | null;
