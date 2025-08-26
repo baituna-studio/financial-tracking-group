@@ -71,6 +71,7 @@ import {
 export default function FinancePage() {
   const [budgets, setBudgets] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [walletTransfers, setWalletTransfers] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -276,8 +277,24 @@ export default function FinancePage() {
         .lte('expense_date', end)
         .order('expense_date', { ascending: false });
 
+      const { data: walletTransfersData } = await supabase
+        .from('wallet_transfers')
+        .select(
+          `
+          *,
+          from_wallet:from_wallet_id(name, color),
+          to_wallet:to_wallet_id(name, color),
+          groups(name)
+        `
+        )
+        .in('group_id', groupIds)
+        .gte('transfer_date', start)
+        .lte('transfer_date', end)
+        .order('transfer_date', { ascending: false });
+
       setBudgets(budgetsData || []);
       setExpenses(expensesData || []);
+      setWalletTransfers(walletTransfersData || []);
     } catch (error) {
       console.error('Error loading finance data:', error);
       toast({
@@ -439,113 +456,8 @@ export default function FinancePage() {
           </Button>
         </div>
 
-        {/* Budgets Section */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Pemasukan Bulan Ini</CardTitle>
-                <CardDescription>
-                  Daftar pemasukan yang aktif untuk periode yang dipilih
-                </CardDescription>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(
-                    budgets.reduce(
-                      (sum, budget) => sum + (budget.amount || 0),
-                      0
-                    )
-                  )}
-                </div>
-                <div className="text-sm text-gray-500">Total Pemasukan</div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {budgets.length > 0 ? (
-              <div className="space-y-4">
-                {budgets.map((budget) => (
-                  <div
-                    key={budget.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{
-                          backgroundColor:
-                            budget.categories?.color || '#6B7280',
-                        }}
-                      />
-                      <div>
-                        <h4 className="font-medium">{budget.title}</h4>
-                        <p className="text-sm text-gray-600">
-                          {budget.categories?.name} • {budget.groups?.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatDate(budget.start_date)} -{' '}
-                          {formatDate(budget.end_date)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <p className="font-semibold text-lg hidden sm:block">
-                        {formatCurrency(budget.amount)}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setViewBudget(budget)}
-                        aria-label="Lihat pemasukan"
-                        title="Lihat pemasukan"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditBudget(budget)}
-                        aria-label="Edit pemasukan"
-                        title="Edit pemasukan"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-600"
-                        onClick={() => handleDeleteBudget(budget)}
-                        disabled={deletingId === budget.id}
-                        aria-label="Hapus pemasukan"
-                        title="Hapus pemasukan"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">
-                  Belum ada pemasukan untuk bulan ini
-                </p>
-                <Button
-                  onClick={() => setIsBudgetModalOpen(true)}
-                  variant="outline"
-                  className="mt-4"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Tambah Pemasukan
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Expenses Section */}
-        <Card>
+        <Card className="border-l-4 border-l-red-500">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -815,6 +727,227 @@ export default function FinancePage() {
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Tambah Pengeluaran
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Wallet Transfers Section */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Daftar Pindah Dompet</CardTitle>
+                <CardDescription>
+                  Semua transfer antar dompet untuk periode yang dipilih
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(
+                    walletTransfers.reduce(
+                      (sum, transfer) => sum + (transfer.amount || 0),
+                      0
+                    )
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">Total Transfer</div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {walletTransfers.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Judul</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Dari Dompet
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Ke Dompet
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Grup
+                      </TableHead>
+                      <TableHead className="text-right">Jumlah</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {walletTransfers.map((transfer) => (
+                      <TableRow key={transfer.id}>
+                        <TableCell className="font-medium">
+                          {formatDate(transfer.transfer_date)}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{transfer.title}</p>
+                            {transfer.description && (
+                              <p className="text-sm text-gray-600 hidden md:block">
+                                {transfer.description}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  transfer.from_wallet?.color || '#6B7280',
+                              }}
+                            />
+                            <span>
+                              {transfer.from_wallet?.name || 'Unknown'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  transfer.to_wallet?.color || '#6B7280',
+                              }}
+                            />
+                            <span>{transfer.to_wallet?.name || 'Unknown'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <Badge variant="secondary">
+                            {transfer.groups?.name || 'Tidak ada grup'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-blue-600">
+                          {formatCurrency(transfer.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8 flex flex-col items-center justify-center">
+                <p className="text-gray-500">
+                  Belum ada transfer dompet untuk bulan ini
+                </p>
+                <Button
+                  onClick={() => setIsWalletTransferModalOpen(true)}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  <ArrowRightLeft className="mr-2 h-4 w-4" />
+                  Pindah Dompet
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Budgets Section */}
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Pemasukan Bulan Ini</CardTitle>
+                <CardDescription>
+                  Daftar pemasukan yang aktif untuk periode yang dipilih
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(
+                    budgets.reduce(
+                      (sum, budget) => sum + (budget.amount || 0),
+                      0
+                    )
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">Total Pemasukan</div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {budgets.length > 0 ? (
+              <div className="space-y-4">
+                {budgets.map((budget) => (
+                  <div
+                    key={budget.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{
+                          backgroundColor:
+                            budget.categories?.color || '#6B7280',
+                        }}
+                      />
+                      <div>
+                        <h4 className="font-medium">{budget.title}</h4>
+                        <p className="text-sm text-gray-600">
+                          {budget.categories?.name} • {budget.groups?.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(budget.start_date)} -{' '}
+                          {formatDate(budget.end_date)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <p className="font-semibold text-lg hidden sm:block">
+                        {formatCurrency(budget.amount)}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setViewBudget(budget)}
+                        aria-label="Lihat pemasukan"
+                        title="Lihat pemasukan"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditBudget(budget)}
+                        aria-label="Edit pemasukan"
+                        title="Edit pemasukan"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-600"
+                        onClick={() => handleDeleteBudget(budget)}
+                        disabled={deletingId === budget.id}
+                        aria-label="Hapus pemasukan"
+                        title="Hapus pemasukan"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  Belum ada pemasukan untuk bulan ini
+                </p>
+                <Button
+                  onClick={() => setIsBudgetModalOpen(true)}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Pemasukan
                 </Button>
               </div>
             )}
