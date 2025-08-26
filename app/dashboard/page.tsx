@@ -48,6 +48,15 @@ import {
 } from 'recharts';
 import { TransactionListModal } from '@/components/modals/transaction-list-modal';
 import { WalletDetailModal } from '@/components/modals/wallet-detail-modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Palette } from 'lucide-react';
 
 // Wallet icon mapping function
 const getWalletIcon = (iconName: string): string => {
@@ -98,6 +107,46 @@ export default function DashboardPage() {
     recentIncome: [] as any[],
     walletBalances: [] as any[],
   });
+
+  // Default card colors
+  const defaultCardColors = {
+    totalPemasukan: '#10B981', // Green
+    totalPengeluaran: '#EF4444', // Red
+    sisaPemasukan: '#3B82F6', // Blue
+    persentaseTerpakai: '#F59E0B', // Amber
+    pengeluaranPerKategori: '#8B5CF6', // Purple
+    danaDompet: '#06B6D4', // Cyan
+    pieChartPengeluaran: '#EC4899', // Pink
+    pieChartPemasukan: '#84CC16', // Lime
+    pengeluaranTerbaru: '#F97316', // Orange
+    pemasukanPerKategori: '#22C55E', // Green
+  };
+
+  // Card color customization state with localStorage
+  const [cardColors, setCardColors] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedColors = localStorage.getItem('dashboardCardColors');
+      if (savedColors) {
+        try {
+          return JSON.parse(savedColors);
+        } catch (error) {
+          console.error('Error parsing saved colors:', error);
+          return defaultCardColors;
+        }
+      }
+    }
+    return defaultCardColors;
+  });
+
+  const [showColorCustomization, setShowColorCustomization] = useState(false);
+
+  // Custom setter function that saves to localStorage
+  const updateCardColors = (newColors: typeof defaultCardColors) => {
+    setCardColors(newColors);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dashboardCardColors', JSON.stringify(newColors));
+    }
+  };
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [transactionModalOpen, setTransactionModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<'expense' | 'income'>(
@@ -503,6 +552,14 @@ export default function DashboardPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              onClick={() => setShowColorCustomization(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Palette className="h-4 w-4" />
+              Warna
+            </Button>
             <Button onClick={handleExportData} variant="outline">
               <Download className="mr-2 h-4 w-4" />
               Export
@@ -512,63 +569,98 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.totalPemasukan }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Pemasukan
               </CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <Target
+                className="h-4 w-4"
+                style={{ color: cardColors.totalPemasukan }}
+              />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div
+                className="text-2xl font-bold"
+                style={{ color: cardColors.totalPemasukan }}
+              >
                 {formatCurrency(dashboardData.totalBudget)}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.totalPengeluaran }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Pengeluaran
               </CardTitle>
-              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              <TrendingDown
+                className="h-4 w-4"
+                style={{ color: cardColors.totalPengeluaran }}
+              />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div
+                className="text-2xl font-bold"
+                style={{ color: cardColors.totalPengeluaran }}
+              >
                 {formatCurrency(dashboardData.totalExpenses)}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.sisaPemasukan }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Sisa Pemasukan
               </CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <Wallet
+                className="h-4 w-4"
+                style={{ color: cardColors.sisaPemasukan }}
+              />
             </CardHeader>
             <CardContent>
               <div
-                className={`text-2xl font-bold ${
-                  dashboardData.remainingBudget >= 0
-                    ? 'text-green-600'
-                    : 'text-red-600'
-                }`}
+                className="text-2xl font-bold"
+                style={{
+                  color:
+                    dashboardData.remainingBudget >= 0
+                      ? cardColors.sisaPemasukan
+                      : cardColors.totalPengeluaran,
+                }}
               >
                 {formatCurrency(dashboardData.remainingBudget)}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.persentaseTerpakai }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Persentase Terpakai
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp
+                className="h-4 w-4"
+                style={{ color: cardColors.persentaseTerpakai }}
+              />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div
+                className="text-2xl font-bold"
+                style={{ color: cardColors.persentaseTerpakai }}
+              >
                 {dashboardData.totalBudget > 0
                   ? `${Math.round(
                       (dashboardData.totalExpenses /
@@ -583,9 +675,14 @@ export default function DashboardPage() {
 
         {/* Breakdown and recent */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.pengeluaranPerKategori }}
+          >
             <CardHeader>
-              <CardTitle>Pengeluaran per Kategori</CardTitle>
+              <CardTitle style={{ color: cardColors.pengeluaranPerKategori }}>
+                Pengeluaran per Kategori
+              </CardTitle>
               <CardDescription>
                 Breakdown pengeluaran berdasarkan kategori
               </CardDescription>
@@ -741,10 +838,15 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.danaDompet }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
-                <CardTitle>Dana Dompet</CardTitle>
+                <CardTitle style={{ color: cardColors.danaDompet }}>
+                  Dana Dompet
+                </CardTitle>
                 <CardDescription>
                   Saldo saat ini di setiap dompet untuk periode yang dipilih
                 </CardDescription>
@@ -754,15 +856,17 @@ export default function DashboardPage() {
                   Total Dana
                 </div>
                 <div
-                  className={`text-lg font-bold ${
-                    dashboardData.walletBalances.reduce(
-                      (total: number, wallet: any) =>
-                        total + (wallet.balance || 0),
-                      0
-                    ) >= 0
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                  }`}
+                  className="text-lg font-bold"
+                  style={{
+                    color:
+                      dashboardData.walletBalances.reduce(
+                        (total: number, wallet: any) =>
+                          total + (wallet.balance || 0),
+                        0
+                      ) >= 0
+                        ? cardColors.danaDompet
+                        : cardColors.totalPengeluaran,
+                  }}
                 >
                   {formatCurrency(
                     dashboardData.walletBalances.reduce(
@@ -821,9 +925,14 @@ export default function DashboardPage() {
 
         {/* Pie Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.pieChartPengeluaran }}
+          >
             <CardHeader>
-              <CardTitle>Pie Chart Pengeluaran</CardTitle>
+              <CardTitle style={{ color: cardColors.pieChartPengeluaran }}>
+                Pie Chart Pengeluaran
+              </CardTitle>
               <CardDescription>
                 Visualisasi pengeluaran per kategori
               </CardDescription>
@@ -882,9 +991,14 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.pieChartPemasukan }}
+          >
             <CardHeader>
-              <CardTitle>Pie Chart Pemasukan</CardTitle>
+              <CardTitle style={{ color: cardColors.pieChartPemasukan }}>
+                Pie Chart Pemasukan
+              </CardTitle>
               <CardDescription>
                 Visualisasi pemasukan per kategori
               </CardDescription>
@@ -944,9 +1058,14 @@ export default function DashboardPage() {
 
         {/* Recent Transactions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.pengeluaranTerbaru }}
+          >
             <CardHeader>
-              <CardTitle>Pengeluaran Terbaru</CardTitle>
+              <CardTitle style={{ color: cardColors.pengeluaranTerbaru }}>
+                Pengeluaran Terbaru
+              </CardTitle>
               <CardDescription>
                 Semua pengeluaran untuk periode yang dipilih (urut berdasarkan
                 tanggal dibuat)
@@ -1084,9 +1203,14 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="border-l-4"
+            style={{ borderLeftColor: cardColors.pemasukanPerKategori }}
+          >
             <CardHeader>
-              <CardTitle>Pemasukan per Kategori</CardTitle>
+              <CardTitle style={{ color: cardColors.pemasukanPerKategori }}>
+                Pemasukan per Kategori
+              </CardTitle>
               <CardDescription>
                 Breakdown pemasukan berdasarkan kategori
               </CardDescription>
@@ -1146,6 +1270,318 @@ export default function DashboardPage() {
         selectedMonth={selectedMonth}
         monthStartDay={profile?.month_start_day || 1}
       />
+
+      {/* Color Customization Modal */}
+      <Dialog
+        open={showColorCustomization}
+        onOpenChange={setShowColorCustomization}
+      >
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Kustomisasi Warna Dashboard
+            </DialogTitle>
+            <DialogDescription>
+              Pilih warna untuk setiap card pada dashboard
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Stats Cards */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg border-b pb-2">
+                Kartu Statistik
+              </h3>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="totalPemasukan" className="text-sm">
+                    Total Pemasukan
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: cardColors.totalPemasukan }}
+                    />
+                    <Input
+                      id="totalPemasukan"
+                      type="color"
+                      value={cardColors.totalPemasukan}
+                      onChange={(e) =>
+                        updateCardColors({
+                          ...cardColors,
+                          totalPemasukan: e.target.value,
+                        })
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="totalPengeluaran" className="text-sm">
+                    Total Pengeluaran
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: cardColors.totalPengeluaran }}
+                    />
+                    <Input
+                      id="totalPengeluaran"
+                      type="color"
+                      value={cardColors.totalPengeluaran}
+                      onChange={(e) =>
+                        updateCardColors({
+                          ...cardColors,
+                          totalPengeluaran: e.target.value,
+                        })
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sisaPemasukan" className="text-sm">
+                    Sisa Pemasukan
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: cardColors.sisaPemasukan }}
+                    />
+                    <Input
+                      id="sisaPemasukan"
+                      type="color"
+                      value={cardColors.sisaPemasukan}
+                      onChange={(e) =>
+                        updateCardColors({
+                          ...cardColors,
+                          sisaPemasukan: e.target.value,
+                        })
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="persentaseTerpakai" className="text-sm">
+                    Persentase Terpakai
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: cardColors.persentaseTerpakai }}
+                    />
+                    <Input
+                      id="persentaseTerpakai"
+                      type="color"
+                      value={cardColors.persentaseTerpakai}
+                      onChange={(e) =>
+                        setCardColors((prev) => ({
+                          ...prev,
+                          persentaseTerpakai: e.target.value,
+                        }))
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Cards */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg border-b pb-2">
+                Kartu Konten
+              </h3>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pengeluaranPerKategori" className="text-sm">
+                    Pengeluaran per Kategori
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{
+                        backgroundColor: cardColors.pengeluaranPerKategori,
+                      }}
+                    />
+                    <Input
+                      id="pengeluaranPerKategori"
+                      type="color"
+                      value={cardColors.pengeluaranPerKategori}
+                      onChange={(e) =>
+                        setCardColors((prev) => ({
+                          ...prev,
+                          pengeluaranPerKategori: e.target.value,
+                        }))
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="danaDompet" className="text-sm">
+                    Dana Dompet
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: cardColors.danaDompet }}
+                    />
+                    <Input
+                      id="danaDompet"
+                      type="color"
+                      value={cardColors.danaDompet}
+                      onChange={(e) =>
+                        setCardColors((prev) => ({
+                          ...prev,
+                          danaDompet: e.target.value,
+                        }))
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pieChartPengeluaran" className="text-sm">
+                    Pie Chart Pengeluaran
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{
+                        backgroundColor: cardColors.pieChartPengeluaran,
+                      }}
+                    />
+                    <Input
+                      id="pieChartPengeluaran"
+                      type="color"
+                      value={cardColors.pieChartPengeluaran}
+                      onChange={(e) =>
+                        setCardColors((prev) => ({
+                          ...prev,
+                          pieChartPengeluaran: e.target.value,
+                        }))
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pieChartPemasukan" className="text-sm">
+                    Pie Chart Pemasukan
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: cardColors.pieChartPemasukan }}
+                    />
+                    <Input
+                      id="pieChartPemasukan"
+                      type="color"
+                      value={cardColors.pieChartPemasukan}
+                      onChange={(e) =>
+                        setCardColors((prev) => ({
+                          ...prev,
+                          pieChartPemasukan: e.target.value,
+                        }))
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pengeluaranTerbaru" className="text-sm">
+                    Pengeluaran Terbaru
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{ backgroundColor: cardColors.pengeluaranTerbaru }}
+                    />
+                    <Input
+                      id="pengeluaranTerbaru"
+                      type="color"
+                      value={cardColors.pengeluaranTerbaru}
+                      onChange={(e) =>
+                        setCardColors((prev) => ({
+                          ...prev,
+                          pengeluaranTerbaru: e.target.value,
+                        }))
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="pemasukanPerKategori" className="text-sm">
+                    Pemasukan per Kategori
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded border"
+                      style={{
+                        backgroundColor: cardColors.pemasukanPerKategori,
+                      }}
+                    />
+                    <Input
+                      id="pemasukanPerKategori"
+                      type="color"
+                      value={cardColors.pemasukanPerKategori}
+                      onChange={(e) =>
+                        setCardColors((prev) => ({
+                          ...prev,
+                          pemasukanPerKategori: e.target.value,
+                        }))
+                      }
+                      className="w-16 h-8 p-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowColorCustomization(false)}
+            >
+              Tutup
+            </Button>
+            <Button
+              onClick={() => {
+                // Reset to default colors
+                updateCardColors(defaultCardColors);
+              }}
+              variant="outline"
+            >
+              Reset Default
+            </Button>
+            <Button
+              onClick={() => {
+                // Save current colors to localStorage
+                updateCardColors(cardColors);
+                setShowColorCustomization(false);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Simpan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
