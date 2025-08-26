@@ -93,17 +93,31 @@ export default function FinancePage() {
   const [viewExpense, setViewExpense] = useState<any | null>(null);
   const [editExpense, setEditExpense] = useState<any | null>(null);
 
+  const [viewWalletTransfer, setViewWalletTransfer] = useState<any | null>(
+    null
+  );
+  const [editWalletTransfer, setEditWalletTransfer] = useState<any | null>(
+    null
+  );
+
   const [pendingDeleteBudget, setPendingDeleteBudget] = useState<any | null>(
     null
   );
   const [pendingDeleteExpense, setPendingDeleteExpense] = useState<any | null>(
     null
   );
+  const [pendingDeleteWalletTransfer, setPendingDeleteWalletTransfer] =
+    useState<any | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Wallet transfer pagination state
+  const [walletTransferPage, setWalletTransferPage] = useState(1);
+  const [walletTransferPageSize, setWalletTransferPageSize] = useState(10);
+  const [walletTransferSearchTerm, setWalletTransferSearchTerm] = useState('');
 
   // Generate months with custom labels
   const months = useMemo(() => {
@@ -146,6 +160,20 @@ export default function FinancePage() {
   const endIndex = startIndex + pageSize;
   const currentExpenses = expenses.slice(startIndex, endIndex);
 
+  // Wallet transfer pagination logic
+  const totalWalletTransfers = walletTransfers.length;
+  const totalWalletTransferPages = Math.ceil(
+    totalWalletTransfers / walletTransferPageSize
+  );
+  const walletTransferStartIndex =
+    (walletTransferPage - 1) * walletTransferPageSize;
+  const walletTransferEndIndex =
+    walletTransferStartIndex + walletTransferPageSize;
+  const currentWalletTransfers = walletTransfers.slice(
+    walletTransferStartIndex,
+    walletTransferEndIndex
+  );
+
   // Search and sort logic
   const filteredExpenses = useMemo(() => {
     let filtered = [...expenses];
@@ -172,6 +200,33 @@ export default function FinancePage() {
     return filtered;
   }, [expenses, searchTerm]);
 
+  // Wallet transfer search and sort logic
+  const filteredWalletTransfers = useMemo(() => {
+    let filtered = [...walletTransfers];
+
+    // Apply search filter
+    if (walletTransferSearchTerm.trim()) {
+      const searchLower = walletTransferSearchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (transfer) =>
+          transfer.title?.toLowerCase().includes(searchLower) ||
+          transfer.description?.toLowerCase().includes(searchLower) ||
+          transfer.from_wallet?.name?.toLowerCase().includes(searchLower) ||
+          transfer.to_wallet?.name?.toLowerCase().includes(searchLower) ||
+          transfer.groups?.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort by transfer_date descending (newest first)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.transfer_date).getTime();
+      const dateB = new Date(b.transfer_date).getTime();
+      return dateB - dateA;
+    });
+
+    return filtered;
+  }, [walletTransfers, walletTransferSearchTerm]);
+
   // Update pagination for filtered data
   const totalFilteredExpenses = filteredExpenses.length;
   const totalFilteredPages = Math.ceil(totalFilteredExpenses / pageSize);
@@ -180,6 +235,20 @@ export default function FinancePage() {
   const currentFilteredExpenses = filteredExpenses.slice(
     filteredStartIndex,
     filteredEndIndex
+  );
+
+  // Update pagination for filtered wallet transfers
+  const totalFilteredWalletTransfers = filteredWalletTransfers.length;
+  const totalFilteredWalletTransferPages = Math.ceil(
+    totalFilteredWalletTransfers / walletTransferPageSize
+  );
+  const filteredWalletTransferStartIndex =
+    (walletTransferPage - 1) * walletTransferPageSize;
+  const filteredWalletTransferEndIndex =
+    filteredWalletTransferStartIndex + walletTransferPageSize;
+  const currentFilteredWalletTransfers = filteredWalletTransfers.slice(
+    filteredWalletTransferStartIndex,
+    filteredWalletTransferEndIndex
   );
 
   // Reset to first page when expenses change
@@ -191,6 +260,16 @@ export default function FinancePage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
+
+  // Reset to first page when wallet transfers change
+  useEffect(() => {
+    setWalletTransferPage(1);
+  }, [walletTransfers.length]);
+
+  // Reset to first page when wallet transfer search term changes
+  useEffect(() => {
+    setWalletTransferPage(1);
+  }, [walletTransferSearchTerm]);
 
   useEffect(() => {
     loadUserProfile();
@@ -378,8 +457,40 @@ export default function FinancePage() {
     }
   };
 
+  const doDeleteWalletTransfer = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/wallet-transfers/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Gagal menghapus transfer dompet');
+      }
+      toast({
+        title: 'Transfer dompet berhasil dihapus',
+        description: 'Transfer dompet berhasil dihapus.',
+        variant: 'default',
+      });
+      await loadFinanceData();
+    } catch (e: any) {
+      toast({
+        title: 'Gagal menghapus transfer dompet!',
+        description: e?.message || 'Terjadi kesalahan',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingId(null);
+      setPendingDeleteWalletTransfer(null);
+    }
+  };
+
   const handleDeleteExpense = (expense: any) => {
     setPendingDeleteExpense(expense);
+  };
+
+  const handleDeleteWalletTransfer = (transfer: any) => {
+    setPendingDeleteWalletTransfer(transfer);
   };
 
   if (isLoading) {
@@ -757,6 +868,43 @@ export default function FinancePage() {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Search and Controls */}
+            <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Cari transfer dompet..."
+                    value={walletTransferSearchTerm}
+                    onChange={(e) =>
+                      setWalletTransferSearchTerm(e.target.value)
+                    }
+                    className="pl-10 w-full sm:w-64"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Per halaman:</span>
+                  <Select
+                    value={walletTransferPageSize.toString()}
+                    onValueChange={(value) => {
+                      setWalletTransferPageSize(Number(value));
+                      setWalletTransferPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
             {walletTransfers.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
@@ -774,10 +922,11 @@ export default function FinancePage() {
                         Grup
                       </TableHead>
                       <TableHead className="text-right">Jumlah</TableHead>
+                      <TableHead className="w-28 text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {walletTransfers.map((transfer) => (
+                    {currentFilteredWalletTransfers.map((transfer) => (
                       <TableRow key={transfer.id}>
                         <TableCell className="font-medium">
                           {formatDate(transfer.transfer_date)}
@@ -785,6 +934,10 @@ export default function FinancePage() {
                         <TableCell>
                           <div>
                             <p className="font-medium">{transfer.title}</p>
+                            <p className="text-xs text-gray-500 md:hidden">
+                              {transfer.from_wallet?.name} →{' '}
+                              {transfer.to_wallet?.name}
+                            </p>
                             {transfer.description && (
                               <p className="text-sm text-gray-600 hidden md:block">
                                 {transfer.description}
@@ -826,10 +979,172 @@ export default function FinancePage() {
                         <TableCell className="text-right font-semibold text-blue-600">
                           {formatCurrency(transfer.amount)}
                         </TableCell>
+                        <TableCell className="text-center">
+                          {/* Mobile: Action List */}
+                          <div className="md:hidden">
+                            <Select>
+                              <SelectTrigger className="w-20 h-8">
+                                <span className="text-xs">Aksi</span>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem
+                                  value="view"
+                                  onClick={() =>
+                                    setViewWalletTransfer(transfer)
+                                  }
+                                >
+                                  Lihat
+                                </SelectItem>
+                                <SelectItem
+                                  value="edit"
+                                  onClick={() =>
+                                    setEditWalletTransfer(transfer)
+                                  }
+                                >
+                                  Edit
+                                </SelectItem>
+                                <SelectItem
+                                  value="delete"
+                                  onClick={() =>
+                                    handleDeleteWalletTransfer(transfer)
+                                  }
+                                  className="text-red-600"
+                                >
+                                  Hapus
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Desktop: Individual Action Buttons */}
+                          <div className="hidden md:flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setViewWalletTransfer(transfer)}
+                              aria-label="Lihat transfer dompet"
+                              title="Lihat transfer dompet"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditWalletTransfer(transfer)}
+                              aria-label="Edit transfer dompet"
+                              title="Edit transfer dompet"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600"
+                              onClick={() =>
+                                handleDeleteWalletTransfer(transfer)
+                              }
+                              disabled={deletingId === transfer.id}
+                              aria-label="Hapus transfer dompet"
+                              title="Hapus transfer dompet"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                {/* Pagination */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>
+                      Menampilkan {filteredWalletTransferStartIndex + 1}-
+                      {Math.min(
+                        filteredWalletTransferEndIndex,
+                        totalFilteredWalletTransfers
+                      )}{' '}
+                      dari {totalFilteredWalletTransfers} transfer dompet
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      (Halaman {walletTransferPage} dari{' '}
+                      {totalFilteredWalletTransferPages})
+                    </span>
+                  </div>
+                  {totalFilteredWalletTransferPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setWalletTransferPage((prev) => Math.max(1, prev - 1))
+                        }
+                        disabled={walletTransferPage === 1}
+                        className="w-8 h-8 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from(
+                          {
+                            length: Math.min(
+                              5,
+                              totalFilteredWalletTransferPages
+                            ),
+                          },
+                          (_, i) => {
+                            let pageNum;
+                            if (totalFilteredWalletTransferPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (walletTransferPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (
+                              walletTransferPage >=
+                              totalFilteredWalletTransferPages - 2
+                            ) {
+                              pageNum =
+                                totalFilteredWalletTransferPages - 4 + i;
+                            } else {
+                              pageNum = walletTransferPage - 2 + i;
+                            }
+
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={
+                                  walletTransferPage === pageNum
+                                    ? 'default'
+                                    : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setWalletTransferPage(pageNum)}
+                                className="w-8 h-8 p-0"
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          }
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setWalletTransferPage((prev) =>
+                            Math.min(totalFilteredWalletTransferPages, prev + 1)
+                          )
+                        }
+                        disabled={
+                          walletTransferPage ===
+                          totalFilteredWalletTransferPages
+                        }
+                        className="w-8 h-8 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="text-center py-8 flex flex-col items-center justify-center">
@@ -1050,6 +1365,40 @@ export default function FinancePage() {
                 disabled={deletingId === pendingDeleteExpense?.id}
               >
                 {deletingId === pendingDeleteExpense?.id
+                  ? 'Menghapus...'
+                  : 'Hapus'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={!!pendingDeleteWalletTransfer}
+          onOpenChange={(open) => !open && setPendingDeleteWalletTransfer(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Transfer Dompet?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin menghapus transfer dompet "
+                {pendingDeleteWalletTransfer?.title}"? Tindakan ini tidak dapat
+                dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => setPendingDeleteWalletTransfer(null)}
+              >
+                Batal
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() =>
+                  pendingDeleteWalletTransfer &&
+                  doDeleteWalletTransfer(pendingDeleteWalletTransfer.id)
+                }
+                disabled={deletingId === pendingDeleteWalletTransfer?.id}
+              >
+                {deletingId === pendingDeleteWalletTransfer?.id
                   ? 'Menghapus...'
                   : 'Hapus'}
               </AlertDialogAction>
