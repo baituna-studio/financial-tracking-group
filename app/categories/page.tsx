@@ -54,9 +54,9 @@ export default function CategoriesPage() {
   const [editCategory, setEditCategory] = useState<any | null>(null);
   const [viewCategory, setViewCategory] = useState<any | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'Pengeluaran' | 'Pemasukan'>(
-    'Pengeluaran'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'Pengeluaran' | 'Pemasukan' | 'Dompet'
+  >('Pengeluaran');
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<
     any | null
   >(null);
@@ -217,7 +217,13 @@ export default function CategoriesPage() {
 
   const handleViewTransactions = (category: any) => {
     setSelectedCategory(category);
-    setTransactionType(category.type === 'Pengeluaran' ? 'expense' : 'income');
+    if (category.type === 'Pengeluaran') {
+      setTransactionType('expense');
+    } else if (category.type === 'Pemasukan') {
+      setTransactionType('income');
+    } else if (category.type === 'Dompet') {
+      setTransactionType('expense'); // Wallet transactions are typically expenses
+    }
     setTransactionModalOpen(true);
   };
 
@@ -263,6 +269,10 @@ export default function CategoriesPage() {
   );
   const expenseCategories = useMemo(
     () => categories.filter((c) => c.type === 'Pengeluaran'),
+    [categories]
+  );
+  const walletCategories = useMemo(
+    () => categories.filter((c) => c.type === 'Dompet'),
     [categories]
   );
 
@@ -359,7 +369,9 @@ export default function CategoriesPage() {
                     <span className="text-sm text-gray-500">
                       {category.type === 'Pengeluaran'
                         ? 'Total Pengeluaran'
-                        : 'Total Pemasukan'}
+                        : category.type === 'Pemasukan'
+                        ? 'Total Pemasukan'
+                        : 'Total Transaksi'}
                       :
                     </span>
                     <Badge variant="secondary" className="font-semibold">
@@ -418,9 +430,10 @@ export default function CategoriesPage() {
           onValueChange={(v) => setActiveTab(v as any)}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:w-auto">
             <TabsTrigger value="Pengeluaran">Pengeluaran</TabsTrigger>
             <TabsTrigger value="Pemasukan">Pemasukan</TabsTrigger>
+            <TabsTrigger value="Dompet">Dompet</TabsTrigger>
           </TabsList>
           <TabsContent value="Pengeluaran" className="mt-6">
             {isLoading ? (
@@ -438,6 +451,15 @@ export default function CategoriesPage() {
               </div>
             ) : (
               renderGrid(incomeCategories)
+            )}
+          </TabsContent>
+          <TabsContent value="Dompet" className="mt-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              renderGrid(walletCategories)
             )}
           </TabsContent>
         </Tabs>
