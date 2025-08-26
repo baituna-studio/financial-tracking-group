@@ -47,6 +47,34 @@ import {
   Legend,
 } from 'recharts';
 import { TransactionListModal } from '@/components/modals/transaction-list-modal';
+import { WalletDetailModal } from '@/components/modals/wallet-detail-modal';
+
+// Wallet icon mapping function
+const getWalletIcon = (iconName: string): string => {
+  const iconMap: Record<string, string> = {
+    folder: '📁',
+    utensils: '🍽️',
+    zap: '⚡',
+    'graduation-cap': '🎓',
+    car: '🚗',
+    heart: '❤️',
+    'gamepad-2': '🎮',
+    'shopping-bag': '🛍️',
+    home: '🏠',
+    wifi: '📶',
+    phone: '📱',
+    gift: '🎁',
+    coffee: '☕',
+    book: '📚',
+    plane: '✈️',
+    dumbbell: '💪',
+    music: '🎵',
+    camera: '📷',
+    briefcase: '💼',
+    'more-horizontal': '📝',
+  };
+  return iconMap[iconName] || '📁';
+};
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -68,12 +96,15 @@ export default function DashboardPage() {
     incomeByCategory: [] as any[],
     recentExpenses: [] as any[],
     recentIncome: [] as any[],
+    walletBalances: [] as any[],
   });
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [transactionModalOpen, setTransactionModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<'expense' | 'income'>(
     'expense'
   );
+  const [selectedWallet, setSelectedWallet] = useState<any>(null);
+  const [walletDetailModalOpen, setWalletDetailModalOpen] = useState(false);
 
   // Search and pagination state for expenses by category
   const [expenseCategorySearch, setExpenseCategorySearch] = useState('');
@@ -297,6 +328,73 @@ export default function DashboardPage() {
       const totalIncome =
         income?.reduce((sum, i: any) => sum + (i.amount || 0), 0) || 0;
 
+      // Calculate wallet balances
+      const { data: walletCategories } = await supabase
+        .from('categories')
+        .select('id, name, color, icon')
+        .eq('type', 'Dompet')
+        .in('group_id', groupIds);
+
+      const walletBalances = await Promise.all(
+        (walletCategories || []).map(async (wallet) => {
+          // Get income to this wallet
+          const { data: walletIncome } = await supabase
+            .from('budgets')
+            .select('amount')
+            .eq('wallet_id', wallet.id)
+            .gte('start_date', start)
+            .lte('start_date', end);
+
+          // Get expenses from this wallet
+          const { data: walletExpenses } = await supabase
+            .from('expenses')
+            .select('amount')
+            .eq('wallet_id', wallet.id)
+            .gte('expense_date', start)
+            .lte('expense_date', end);
+
+          // Get transfers to this wallet
+          const { data: transfersTo } = await supabase
+            .from('wallet_transfers')
+            .select('amount')
+            .eq('to_wallet_id', wallet.id)
+            .gte('transfer_date', start)
+            .lte('transfer_date', end);
+
+          // Get transfers from this wallet
+          const { data: transfersFrom } = await supabase
+            .from('wallet_transfers')
+            .select('amount')
+            .eq('from_wallet_id', wallet.id)
+            .gte('transfer_date', start)
+            .lte('transfer_date', end);
+
+          const totalIncome =
+            walletIncome?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
+          const totalExpenses =
+            walletExpenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+          const totalTransfersTo =
+            transfersTo?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+          const totalTransfersFrom =
+            transfersFrom?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+
+          const balance =
+            totalIncome + totalTransfersTo - totalExpenses - totalTransfersFrom;
+
+          return {
+            id: wallet.id,
+            name: wallet.name,
+            color: wallet.color,
+            icon: wallet.icon,
+            balance: balance,
+            income: totalIncome,
+            expenses: totalExpenses,
+            transfersTo: totalTransfersTo,
+            transfersFrom: totalTransfersFrom,
+          };
+        })
+      );
+
       // Group expenses by category
       const expensesByCategory =
         expenses?.reduce((acc: any[], expense: any) => {
@@ -344,6 +442,7 @@ export default function DashboardPage() {
         incomeByCategory,
         recentExpenses: expenses || [], // Show all expenses instead of limiting to 5
         recentIncome: income || [], // Show all income instead of limiting to 5
+        walletBalances: walletBalances,
       });
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -643,45 +742,76 @@ export default function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Pemasukan per Kategori</CardTitle>
-              <CardDescription>
-                Breakdown pemasukan berdasarkan kategori
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle>Dana Dompet</CardTitle>
+                <CardDescription>
+                  Saldo saat ini di setiap dompet untuk periode yang dipilih
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-600">
+                  Total Dana
+                </div>
+                <div
+                  className={`text-lg font-bold ${
+                    dashboardData.walletBalances.reduce(
+                      (total: number, wallet: any) =>
+                        total + (wallet.balance || 0),
+                      0
+                    ) >= 0
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}
+                >
+                  {formatCurrency(
+                    dashboardData.walletBalances.reduce(
+                      (total: number, wallet: any) =>
+                        total + (wallet.balance || 0),
+                      0
+                    )
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {dashboardData.incomeByCategory.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
+                {dashboardData.walletBalances.map((wallet: any, i: number) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                    onClick={() => {
+                      setSelectedWallet(wallet);
+                      setWalletDetailModalOpen(true);
+                    }}
+                  >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <button
-                        onClick={() => handleViewTransactions(item, 'income')}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
+                        style={{ backgroundColor: wallet.color || '#6B7280' }}
                       >
-                        {item.category}
-                      </button>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-green-600">
-                        {formatCurrency(item.amount)}
+                        {getWalletIcon(wallet.icon)}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {dashboardData.totalIncome > 0
-                          ? `${Math.round(
-                              (item.amount / dashboardData.totalIncome) * 100
-                            )}%`
-                          : '0%'}
+                      <div>
+                        <p className="text-sm font-medium">{wallet.name}</p>
+                        <p className="text-xs text-gray-500">
+                          Pemasukan: {formatCurrency(wallet.income)} •
+                          Pengeluaran: {formatCurrency(wallet.expenses)}
+                        </p>
                       </div>
                     </div>
+                    <span
+                      className={`text-sm font-bold ${
+                        wallet.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {formatCurrency(wallet.balance)}
+                    </span>
                   </div>
                 ))}
-                {dashboardData.incomeByCategory.length === 0 && (
+                {dashboardData.walletBalances.length === 0 && (
                   <p className="text-center text-gray-500 py-4">
-                    Belum ada pemasukan bulan ini
+                    Belum ada dompet untuk periode ini
                   </p>
                 )}
               </div>
@@ -932,28 +1062,42 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Pemasukan Terbaru</CardTitle>
+              <CardTitle>Pemasukan per Kategori</CardTitle>
               <CardDescription>
-                Semua pemasukan untuk periode yang dipilih (urut berdasarkan
-                tanggal dibuat)
+                Breakdown pemasukan berdasarkan kategori
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {dashboardData.recentIncome.map((inc: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{inc.title}</p>
-                      <p className="text-xs text-gray-500">
-                        {inc.categories?.name || 'Lainnya'} • {inc.income_date}
-                      </p>
+                {dashboardData.incomeByCategory.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <button
+                        onClick={() => handleViewTransactions(item, 'income')}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
+                        {item.category}
+                      </button>
                     </div>
-                    <span className="text-sm font-bold text-green-600">
-                      {formatCurrency(inc.amount)}
-                    </span>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-green-600">
+                        {formatCurrency(item.amount)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {dashboardData.totalIncome > 0
+                          ? `${Math.round(
+                              (item.amount / dashboardData.totalIncome) * 100
+                            )}%`
+                          : '0%'}
+                      </div>
+                    </div>
                   </div>
                 ))}
-                {dashboardData.recentIncome.length === 0 && (
+                {dashboardData.incomeByCategory.length === 0 && (
                   <p className="text-center text-gray-500 py-4">
                     Belum ada pemasukan bulan ini
                   </p>
@@ -968,6 +1112,13 @@ export default function DashboardPage() {
         onClose={() => setTransactionModalOpen(false)}
         category={selectedCategory}
         type={transactionType}
+        selectedMonth={selectedMonth}
+        monthStartDay={profile?.month_start_day || 1}
+      />
+      <WalletDetailModal
+        isOpen={walletDetailModalOpen}
+        onClose={() => setWalletDetailModalOpen(false)}
+        wallet={selectedWallet}
         selectedMonth={selectedMonth}
         monthStartDay={profile?.month_start_day || 1}
       />

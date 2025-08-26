@@ -92,20 +92,37 @@ export function BudgetEditModal({
       const walletId = formData.get('walletId') as string;
       const date = formData.get('date') as string;
 
+      // Debug logging
+      console.log('Form data:', {
+        title,
+        amount,
+        groupId,
+        categoryId,
+        walletId,
+        date,
+      });
+
+      const updateData = {
+        title,
+        amount,
+        group_id: groupId,
+        category_id: categoryId,
+        wallet_id: walletId === 'none' ? null : walletId || null, // Convert 'none' to null
+        start_date: date,
+        end_date: date,
+      };
+
+      console.log('Update data being sent:', updateData);
+
       const res = await fetch(`/api/budgets/${budget.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          amount,
-          group_id: groupId,
-          category_id: categoryId,
-          wallet_id: walletId || null, // Allow null if no wallet selected
-          start_date: date,
-          end_date: date,
-        }),
+        body: JSON.stringify(updateData),
       });
+
       const data = await res.json();
+      console.log('API response:', data);
+
       if (!res.ok || !data.ok)
         throw new Error(data.error || 'Gagal memperbarui budget');
 
@@ -116,6 +133,7 @@ export function BudgetEditModal({
       onSuccess();
       onClose();
     } catch (error: any) {
+      console.error('Error updating budget:', error);
       toast({
         title: 'Gagal memperbarui pemasukan',
         description: error.message,
@@ -193,11 +211,15 @@ export function BudgetEditModal({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="walletId">Ke Dompet (Opsional)</Label>
-                <Select name="walletId" defaultValue={budget.wallet_id}>
+                <Select
+                  name="walletId"
+                  defaultValue={budget.wallet_id || 'none'}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih dompet (opsional)" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Tidak ada dompet</SelectItem>
                     {walletCategories.map((wallet) => (
                       <SelectItem key={wallet.id} value={wallet.id}>
                         {wallet.name}
