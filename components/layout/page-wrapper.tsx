@@ -39,15 +39,15 @@ export function PageWrapper({
   return (
     <div
       className={cn(
-        'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50',
+        'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900',
         className
       )}
     >
       {/* Background decorative elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-purple-200/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/20 dark:bg-blue-800/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200/20 dark:bg-indigo-800/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-purple-200/20 dark:bg-purple-800/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
 
       {/* Content */}
@@ -102,10 +102,13 @@ export function CardWrapper({
   variant?: 'default' | 'elevated' | 'outlined' | 'glass';
 }) {
   const variantClasses = {
-    default: 'bg-white border border-gray-200 shadow-sm',
-    elevated: 'bg-white border border-gray-200 shadow-lg',
-    outlined: 'bg-transparent border-2 border-gray-200',
-    glass: 'bg-white/80 backdrop-blur-md border border-gray-200/50 shadow-lg',
+    default:
+      'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm',
+    elevated:
+      'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg',
+    outlined: 'bg-transparent border-2 border-gray-200 dark:border-gray-700',
+    glass:
+      'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 shadow-lg',
   };
 
   return (
@@ -133,7 +136,7 @@ export function SectionWrapper({
   className?: string;
   title?: string;
   subtitle?: string;
-  actions?: ReactNode;
+  actions?: React.ReactNode;
 }) {
   return (
     <section className={cn('space-y-6', className)}>
@@ -141,9 +144,13 @@ export function SectionWrapper({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             {title && (
-              <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {title}
+              </h2>
             )}
-            {subtitle && <p className="text-gray-600">{subtitle}</p>}
+            {subtitle && (
+              <p className="text-gray-600 dark:text-gray-300">{subtitle}</p>
+            )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>

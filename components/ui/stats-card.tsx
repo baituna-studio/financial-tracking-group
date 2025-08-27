@@ -32,11 +32,15 @@ export function StatsCard({
   loading = false,
 }: StatsCardProps) {
   const variantClasses = {
-    default: 'bg-white border-gray-200 text-gray-900',
-    success: 'bg-green-50 border-green-200 text-green-900',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-900',
-    danger: 'bg-red-50 border-red-200 text-red-900',
-    info: 'bg-blue-50 border-blue-200 text-blue-900',
+    default:
+      'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white',
+    success:
+      'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 text-green-900 dark:text-green-100',
+    warning:
+      'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700 text-yellow-900 dark:text-yellow-100',
+    danger:
+      'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700 text-red-900 dark:text-red-100',
+    info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100',
   };
 
   const sizeClasses = {
@@ -47,20 +51,24 @@ export function StatsCard({
 
   const getChangeIcon = () => {
     if (changeType === 'increase') {
-      return <TrendingUp className="h-4 w-4 text-green-600" />;
+      return (
+        <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+      );
     } else if (changeType === 'decrease') {
-      return <TrendingDown className="h-4 w-4 text-red-600" />;
+      return (
+        <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+      );
     }
-    return <Minus className="h-4 w-4 text-gray-400" />;
+    return <Minus className="h-4 w-4 text-gray-400 dark:text-gray-500" />;
   };
 
   const getChangeColor = () => {
     if (changeType === 'increase') {
-      return 'text-green-600';
+      return 'text-green-600 dark:text-green-400';
     } else if (changeType === 'decrease') {
-      return 'text-red-600';
+      return 'text-red-600 dark:text-red-400';
     }
-    return 'text-gray-600';
+    return 'text-gray-600 dark:text-gray-400';
   };
 
   const getChangePrefix = () => {
@@ -93,7 +101,7 @@ export function StatsCard({
         <div className="flex items-center justify-between mb-4">
           <h3
             className={cn(
-              'font-medium text-gray-600',
+              'font-medium text-gray-600 dark:text-gray-400',
               size === 'sm'
                 ? 'text-sm'
                 : size === 'lg'
@@ -119,7 +127,7 @@ export function StatsCard({
         <div className="mb-2">
           {loading ? (
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded-lg w-24"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg w-24"></div>
             </div>
           ) : (
             <div
@@ -157,7 +165,7 @@ export function StatsCard({
           {description && (
             <p
               className={cn(
-                'text-gray-500',
+                'text-gray-500 dark:text-gray-400',
                 size === 'sm' ? 'text-xs' : 'text-sm'
               )}
             >
@@ -168,7 +176,7 @@ export function StatsCard({
       </div>
 
       {/* Hover Effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -skew-x-12 -translate-x-full group-hover:translate-x-full"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 dark:via-gray-700/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -skew-x-12 -translate-x-full group-hover:translate-x-full"></div>
     </div>
   );
 }
@@ -189,29 +197,37 @@ export function CompactStatsCard({
         'hover:shadow-md hover:-translate-y-0.5',
         'cursor-pointer',
         changeType === 'increase'
-          ? 'bg-green-50 border-green-200'
+          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
           : changeType === 'decrease'
-          ? 'bg-red-50 border-red-200'
-          : 'bg-white border-gray-200',
+          ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
+          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700',
         className
       )}
     >
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-medium text-gray-600">{title}</h4>
-        {icon && <div className="p-1.5 rounded-lg bg-gray-100">{icon}</div>}
+        <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          {title}
+        </h4>
+        {icon && (
+          <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700">
+            {icon}
+          </div>
+        )}
       </div>
 
-      <div className="text-xl font-bold text-gray-900 mb-1">{value}</div>
+      <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+        {value}
+      </div>
 
       {change !== undefined && (
         <div
           className={cn(
             'flex items-center gap-1 text-xs font-medium',
             changeType === 'increase'
-              ? 'text-green-600'
+              ? 'text-green-600 dark:text-green-400'
               : changeType === 'decrease'
-              ? 'text-red-600'
-              : 'text-gray-600'
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-gray-600 dark:text-gray-400'
           )}
         >
           {changeType === 'increase' && <TrendingUp className="h-3 w-3" />}

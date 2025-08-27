@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { signOut, getCurrentUser } from '@/lib/auth';
 import { toast } from '@/hooks/use-toast';
+import { useDarkMode } from '@/lib/dark-mode';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +45,7 @@ export function Header({
 }: HeaderProps) {
   const [user, setUser] = useState<any>(null);
   const [searchValue, setSearchValue] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   useEffect(() => {
     getCurrentUser().then(setUser);
@@ -74,13 +75,8 @@ export function Header({
     onSearch?.(value);
   };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    // Add dark mode logic here
-  };
-
   return (
-    <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+    <header className="sticky top-0 z-30 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
       <div className="px-4 lg:px-8 py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Left Section - Title and Search */}
@@ -91,19 +87,21 @@ export function Header({
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  {subtitle}
+                </p>
               )}
             </div>
 
             {/* Search Bar */}
             {showSearch && (
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <Input
                   placeholder={searchPlaceholder}
                   value={searchValue}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 h-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl transition-all duration-200"
+                  className="pl-10 h-10 border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-xl transition-all duration-200"
                 />
               </div>
             )}
@@ -121,12 +119,15 @@ export function Header({
               variant="outline"
               size="icon"
               onClick={toggleDarkMode}
-              className="h-10 w-10 rounded-xl border-gray-200 hover:border-gray-300 transition-all duration-200"
+              className="h-10 w-10 rounded-xl border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+              title={
+                isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'
+              }
             >
               {isDarkMode ? (
-                <Sun className="h-4 w-4 text-yellow-600" />
+                <Sun className="h-4 w-4 text-yellow-500" />
               ) : (
-                <Moon className="h-4 w-4 text-gray-600" />
+                <Moon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               )}
             </Button>
 
@@ -134,10 +135,10 @@ export function Header({
             <Button
               variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-xl border-gray-200 hover:border-gray-300 transition-all duration-200 relative"
+              className="h-10 w-10 rounded-xl border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 relative"
             >
-              <Bell className="h-4 w-4 text-gray-600" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+              <Bell className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
             </Button>
 
             {/* User Menu */}
@@ -145,7 +146,7 @@ export function Header({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-10 px-3 rounded-xl border-gray-200 hover:border-gray-300 transition-all duration-200"
+                  className="h-10 px-3 rounded-xl border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-7 w-7">
@@ -157,19 +158,22 @@ export function Header({
                       </AvatarFallback>
                     </Avatar>
                     <div className="hidden sm:block text-left">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {user?.user_metadata?.full_name || 'User'}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {user?.email || 'user@example.com'}
                       </p>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                    <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              >
+                <DropdownMenuLabel className="text-gray-900 dark:text-white">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.user_metadata?.avatar_url} />
@@ -180,27 +184,27 @@ export function Header({
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {user?.user_metadata?.full_name || 'User'}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {user?.email || 'user@example.com'}
                       </p>
                     </div>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+                <DropdownMenuItem className="cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Pengaturan</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
                 <DropdownMenuItem
-                  className="cursor-pointer text-red-600 focus:text-red-600"
+                  className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />

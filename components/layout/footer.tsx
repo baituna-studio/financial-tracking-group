@@ -5,14 +5,12 @@ import Image from 'next/image';
 import { Wallet, Github, Twitter, Mail, Heart } from 'lucide-react';
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 text-white">
+    <footer className="bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 dark:from-black dark:via-gray-900 dark:to-black text-white">
       {/* Bottom Footer */}
-      <div className="border-t border-gray-800 px-4 lg:px-8 py-6">
+      <div className="border-t border-gray-800 dark:border-gray-700 px-4 lg:px-8 py-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-gray-300 text-sm">
+          <div className="flex items-center gap-2 text-gray-300 dark:text-gray-400 text-sm">
             <span>© 2025 Financial App. Dibuat dengan</span>
             <Heart className="w-4 h-4 text-red-500 fill-current" />
             <span>di Indonesia</span>

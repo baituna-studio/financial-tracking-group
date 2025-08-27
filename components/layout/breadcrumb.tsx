@@ -20,7 +20,9 @@ interface BreadcrumbProps {
 export function Breadcrumb({
   items,
   className,
-  separator = <ChevronRight className="h-4 w-4 text-gray-400" />,
+  separator = (
+    <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+  ),
   showHome = true,
 }: BreadcrumbProps) {
   const allItems = showHome
@@ -50,14 +52,18 @@ export function Breadcrumb({
 
             {/* Breadcrumb Item */}
             <div className="flex items-center space-x-1">
-              {item.icon && <span className="text-gray-500">{item.icon}</span>}
+              {item.icon && (
+                <span className="text-gray-500 dark:text-gray-400">
+                  {item.icon}
+                </span>
+              )}
 
               {item.href && !isLast ? (
                 <Link
                   href={item.href}
                   className={cn(
-                    'text-gray-500 hover:text-blue-600 transition-colors duration-200 font-medium',
-                    'hover:underline decoration-blue-600 decoration-2 underline-offset-4'
+                    'text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 font-medium',
+                    'hover:underline decoration-blue-600 dark:decoration-blue-400 decoration-2 underline-offset-4'
                   )}
                 >
                   {item.label}
@@ -66,7 +72,9 @@ export function Breadcrumb({
                 <span
                   className={cn(
                     'font-semibold',
-                    isLast ? 'text-gray-900' : 'text-gray-500'
+                    isLast
+                      ? 'text-gray-900 dark:text-white'
+                      : 'text-gray-500 dark:text-gray-400'
                   )}
                 >
                   {item.label}
@@ -100,8 +108,8 @@ export function CompactBreadcrumb({
     >
       {hasMore && (
         <>
-          <span className="text-gray-400">...</span>
-          <ChevronRight className="h-3 w-3 text-gray-400" />
+          <span className="text-gray-400 dark:text-gray-500">...</span>
+          <ChevronRight className="h-3 w-3 text-gray-400 dark:text-gray-500" />
         </>
       )}
 
@@ -110,12 +118,14 @@ export function CompactBreadcrumb({
 
         return (
           <div key={index} className="flex items-center space-x-1">
-            {index > 0 && <ChevronRight className="h-3 w-3 text-gray-400" />}
+            {index > 0 && (
+              <ChevronRight className="h-3 w-3 text-gray-400 dark:text-gray-500" />
+            )}
 
             {item.href && !isLast ? (
               <Link
                 href={item.href}
-                className="text-gray-500 hover:text-blue-600 transition-colors duration-200 truncate max-w-20"
+                className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 truncate max-w-20"
                 title={item.label}
               >
                 {item.label}
@@ -124,7 +134,9 @@ export function CompactBreadcrumb({
               <span
                 className={cn(
                   'font-medium truncate max-w-24',
-                  isLast ? 'text-gray-900' : 'text-gray-500'
+                  isLast
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-gray-400'
                 )}
                 title={item.label}
               >
