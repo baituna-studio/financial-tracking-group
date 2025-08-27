@@ -1381,7 +1381,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.persentaseTerpakai}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           persentaseTerpakai: e.target.value,
                         }))
@@ -1416,7 +1416,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pengeluaranPerKategori}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pengeluaranPerKategori: e.target.value,
                         }))
@@ -1440,7 +1440,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.danaDompet}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           danaDompet: e.target.value,
                         }))
@@ -1466,7 +1466,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pieChartPengeluaran}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pieChartPengeluaran: e.target.value,
                         }))
@@ -1490,7 +1490,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pieChartPemasukan}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pieChartPemasukan: e.target.value,
                         }))
@@ -1514,7 +1514,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pengeluaranTerbaru}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pengeluaranTerbaru: e.target.value,
                         }))
@@ -1540,7 +1540,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pemasukanPerKategori}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pemasukanPerKategori: e.target.value,
                         }))
