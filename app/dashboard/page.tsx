@@ -947,9 +947,9 @@ export default function DashboardPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ category, percent }) =>
-                          `${category} ${(percent * 100).toFixed(0)}%`
-                        }
+                        // label={({ category, percent }) =>
+                        //   `${category} ${(percent * 100).toFixed(0)}%`
+                        // }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="amount"
@@ -961,11 +961,10 @@ export default function DashboardPage() {
                         )}
                       </Pie>
                       <Tooltip
-                        formatter={(value: any) => [
+                        formatter={(value: any, index: any) => [
                           formatCurrency(value),
-                          'Jumlah',
+                          dashboardData.expensesByCategory[index].category,
                         ]}
-                        labelFormatter={(label) => `Kategori: ${label}`}
                       />
                       <Legend
                         formatter={(value, entry, index) => {
@@ -1013,9 +1012,9 @@ export default function DashboardPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ category, percent }) =>
-                          `${category} ${(percent * 100).toFixed(0)}%`
-                        }
+                        // label={({ category, percent }) =>
+                        //   `${category} ${(percent * 100).toFixed(0)}%`
+                        // }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="amount"
@@ -1025,9 +1024,9 @@ export default function DashboardPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: any) => [
+                        formatter={(value: any, index: any) => [
                           formatCurrency(value),
-                          'Jumlah',
+                          dashboardData.incomeByCategory[index].category,
                         ]}
                         labelFormatter={(label) => `Kategori: ${label}`}
                       />
