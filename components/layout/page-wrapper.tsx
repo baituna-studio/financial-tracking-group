@@ -144,7 +144,7 @@ export function SectionWrapper({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             {title && (
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-2xl font-bold text-blue-900 dark:text-white">
                 {title}
               </h2>
             )}

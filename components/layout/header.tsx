@@ -159,10 +159,10 @@ export function Header({
                     </Avatar>
                     <div className="hidden sm:block text-left">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {user?.user_metadata?.full_name || 'User'}
+                        {user?.user_metadata?.full_name}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {user?.email || 'user@example.com'}
+                        {user?.email}
                       </p>
                     </div>
                     <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -185,10 +185,10 @@ export function Header({
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {user?.user_metadata?.full_name || 'User'}
+                        {user?.user_metadata?.full_name}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {user?.email || 'user@example.com'}
+                        {user?.email}
                       </p>
                     </div>
                   </div>
