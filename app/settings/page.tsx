@@ -359,7 +359,7 @@ export default function SettingsPage() {
       <div className="space-y-6 max-w-2xl">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pengaturan</h1>
+          <h1 className="text-2xl font-bold text-blue-900">Pengaturan</h1>
           <p className="text-gray-600">Kelola akun dan preferensi Anda</p>
         </div>
 
@@ -381,7 +381,7 @@ export default function SettingsPage() {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-blue-50"
                 />
                 <p className="text-xs text-gray-500">
                   Email tidak dapat diubah

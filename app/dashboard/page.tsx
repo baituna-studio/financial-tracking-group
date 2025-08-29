@@ -535,7 +535,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <h1 className="text-2xl font-bold text-blue-900">Dashboard</h1>
             <p className="text-gray-600">Ringkasan keuangan Anda</p>
           </div>
           <div className="flex items-center gap-3">
@@ -947,9 +947,9 @@ export default function DashboardPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ category, percent }) =>
-                          `${category} ${(percent * 100).toFixed(0)}%`
-                        }
+                        // label={({ category, percent }) =>
+                        //   `${category} ${(percent * 100).toFixed(0)}%`
+                        // }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="amount"
@@ -961,11 +961,10 @@ export default function DashboardPage() {
                         )}
                       </Pie>
                       <Tooltip
-                        formatter={(value: any) => [
+                        formatter={(value: any, index: any) => [
                           formatCurrency(value),
-                          'Jumlah',
+                          dashboardData.expensesByCategory[index].category,
                         ]}
-                        labelFormatter={(label) => `Kategori: ${label}`}
                       />
                       <Legend
                         formatter={(value, entry, index) => {
@@ -1013,9 +1012,9 @@ export default function DashboardPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ category, percent }) =>
-                          `${category} ${(percent * 100).toFixed(0)}%`
-                        }
+                        // label={({ category, percent }) =>
+                        //   `${category} ${(percent * 100).toFixed(0)}%`
+                        // }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="amount"
@@ -1025,9 +1024,9 @@ export default function DashboardPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: any) => [
+                        formatter={(value: any, index: any) => [
                           formatCurrency(value),
-                          'Jumlah',
+                          dashboardData.incomeByCategory[index].category,
                         ]}
                         labelFormatter={(label) => `Kategori: ${label}`}
                       />
@@ -1381,7 +1380,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.persentaseTerpakai}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           persentaseTerpakai: e.target.value,
                         }))
@@ -1416,7 +1415,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pengeluaranPerKategori}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pengeluaranPerKategori: e.target.value,
                         }))
@@ -1440,7 +1439,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.danaDompet}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           danaDompet: e.target.value,
                         }))
@@ -1466,7 +1465,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pieChartPengeluaran}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pieChartPengeluaran: e.target.value,
                         }))
@@ -1490,7 +1489,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pieChartPemasukan}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pieChartPemasukan: e.target.value,
                         }))
@@ -1514,7 +1513,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pengeluaranTerbaru}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pengeluaranTerbaru: e.target.value,
                         }))
@@ -1540,7 +1539,7 @@ export default function DashboardPage() {
                       type="color"
                       value={cardColors.pemasukanPerKategori}
                       onChange={(e) =>
-                        setCardColors((prev) => ({
+                        setCardColors((prev: any) => ({
                           ...prev,
                           pemasukanPerKategori: e.target.value,
                         }))
