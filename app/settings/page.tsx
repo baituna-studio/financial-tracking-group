@@ -381,7 +381,7 @@ export default function SettingsPage() {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-blue-50"
                 />
                 <p className="text-xs text-gray-500">
                   Email tidak dapat diubah
