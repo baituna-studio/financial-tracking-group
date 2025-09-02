@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/lib/supabase';
 import { getCurrentUser, getUserProfile } from '@/lib/auth';
+import { useLanguage } from '@/lib/language';
 import { toast } from '@/hooks/use-toast';
 import {
   User,
@@ -38,6 +39,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const { t, language } = useLanguage();
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -105,15 +107,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       if (updateError) throw updateError;
 
       toast({
-        title: 'Profil berhasil diperbarui',
-        description: 'Perubahan telah disimpan.',
+        title: t('profile_updated'),
+        description: t('changes_saved'),
       });
 
       setIsEditing(false);
       await loadUserData(); // Reload data
     } catch (error: any) {
       toast({
-        title: 'Gagal memperbarui profil',
+        title: t('profile_update_error'),
         description: error.message,
         variant: 'destructive',
       });
@@ -140,11 +142,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Profil Pengguna
+            {t('user_profile')}
           </DialogTitle>
-          <DialogDescription>
-            Kelola informasi profil dan pengaturan akun Anda
-          </DialogDescription>
+          <DialogDescription>{t('profile_description')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -168,12 +168,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </p>
               <p className="text-gray-600 dark:text-gray-300 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                Bergabung sejak{' '}
-                {new Date(user?.created_at).toLocaleDateString('id-ID', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+                {t('joined_since')}{' '}
+                {new Date(user?.created_at).toLocaleDateString(
+                  language === 'id' ? 'id-ID' : 'en-US',
+                  {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  }
+                )}
               </p>
             </div>
             <Button
@@ -187,7 +190,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               ) : (
                 <Edit3 className="h-4 w-4" />
               )}
-              {isEditing ? 'Batal' : 'Edit'}
+              {isEditing ? t('cancel') : t('edit')}
             </Button>
           </div>
 
@@ -196,7 +199,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="full_name" className="text-sm font-medium">
-                  Nama Lengkap
+                  {t('full_name')}
                 </Label>
                 {isEditing ? (
                   <Input
@@ -205,13 +208,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     onChange={(e) =>
                       handleInputChange('full_name', e.target.value)
                     }
-                    placeholder="Masukkan nama lengkap"
+                    placeholder={t('enter_full_name')}
                     className="border-gray-200 dark:border-gray-700"
                   />
                 ) : (
                   <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                     <span className="text-gray-900 dark:text-white">
-                      {profile?.full_name || 'Belum diisi'}
+                      {profile?.full_name || t('not_filled')}
                     </span>
                   </div>
                 )}
@@ -219,20 +222,20 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-sm font-medium">
-                  Nomor Telepon
+                  {t('phone')}
                 </Label>
                 {isEditing ? (
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="Masukkan nomor telepon"
+                    placeholder={t('enter_phone')}
                     className="border-gray-200 dark:border-gray-700"
                   />
                 ) : (
                   <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                     <span className="text-gray-900 dark:text-white">
-                      {profile?.phone || 'Belum diisi'}
+                      {profile?.phone || t('not_filled')}
                     </span>
                   </div>
                 )}
@@ -241,21 +244,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
             <div className="space-y-2">
               <Label htmlFor="address" className="text-sm font-medium">
-                Alamat
+                {t('address')}
               </Label>
               {isEditing ? (
                 <Textarea
                   id="address"
                   value={formData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="Masukkan alamat lengkap"
+                  placeholder={t('enter_address')}
                   rows={3}
                   className="border-gray-200 dark:border-gray-700"
                 />
               ) : (
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                   <span className="text-gray-900 dark:text-white">
-                    {profile?.address || 'Belum diisi'}
+                    {profile?.address || t('not_filled')}
                   </span>
                 </div>
               )}
@@ -263,21 +266,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
             <div className="space-y-2">
               <Label htmlFor="bio" className="text-sm font-medium">
-                Bio
+                {t('bio')}
               </Label>
               {isEditing ? (
                 <Textarea
                   id="bio"
                   value={formData.bio}
                   onChange={(e) => handleInputChange('bio', e.target.value)}
-                  placeholder="Ceritakan sedikit tentang diri Anda"
+                  placeholder={t('enter_bio')}
                   rows={4}
                   className="border-gray-200 dark:border-gray-700"
                 />
               ) : (
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                   <span className="text-gray-900 dark:text-white">
-                    {profile?.bio || 'Belum diisi'}
+                    {profile?.bio || t('not_filled')}
                   </span>
                 </div>
               )}
@@ -287,12 +290,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           {/* Account Information */}
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
             <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">
-              Informasi Akun
+              {t('account_info')}
             </h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-blue-700 dark:text-blue-300">
-                  ID Pengguna:
+                  {t('user_id')}:
                 </span>
                 <span className="text-blue-900 dark:text-blue-100 font-mono">
                   {user?.id?.substring(0, 8)}...
@@ -300,7 +303,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-700 dark:text-blue-300">
-                  Status Verifikasi:
+                  {t('verification_status')}:
                 </span>
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -309,19 +312,17 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                       : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                   }`}
                 >
-                  {user?.email_confirmed_at
-                    ? 'Terverifikasi'
-                    : 'Belum Verifikasi'}
+                  {user?.email_confirmed_at ? t('verified') : t('not_verified')}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-700 dark:text-blue-300">
-                  Terakhir Login:
+                  {t('last_login')}:
                 </span>
                 <span className="text-blue-900 dark:text-blue-100">
                   {user?.last_sign_in_at
                     ? new Date(user.last_sign_in_at).toLocaleDateString(
-                        'id-ID',
+                        language === 'id' ? 'id-ID' : 'en-US',
                         {
                           year: 'numeric',
                           month: 'short',
@@ -330,7 +331,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                           minute: '2-digit',
                         }
                       )
-                    : 'Belum pernah login'}
+                    : t('never_logged_in')}
                 </span>
               </div>
             </div>
@@ -345,7 +346,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 onClick={handleCancel}
                 disabled={isLoading}
               >
-                Batal
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleSave}
@@ -355,12 +356,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Menyimpan...
+                    {t('saving')}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Save className="h-4 w-4" />
-                    Simpan Perubahan
+                    {t('save_changes')}
                   </div>
                 )}
               </Button>
@@ -371,7 +372,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               onClick={onClose}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             >
-              Tutup
+              {t('close')}
             </Button>
           )}
         </DialogFooter>

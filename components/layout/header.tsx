@@ -16,6 +16,7 @@ import {
 import { signOut, getCurrentUser } from '@/lib/auth';
 import { toast } from '@/hooks/use-toast';
 import { useDarkMode } from '@/lib/dark-mode';
+import { useLanguage } from '@/lib/language';
 import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProfileModal } from '@/components/modals/profile-modal';
+import { LanguageToggle } from '@/components/ui/language-toggle';
 
 interface HeaderProps {
   title?: string;
@@ -38,10 +40,10 @@ interface HeaderProps {
 }
 
 export function Header({
-  title = 'Dashboard',
-  subtitle = 'Ringkasan keuangan Anda',
+  title,
+  subtitle,
   showSearch = false,
-  searchPlaceholder = 'Cari...',
+  searchPlaceholder,
   onSearch,
   actions,
 }: HeaderProps) {
@@ -49,7 +51,13 @@ export function Header({
   const [searchValue, setSearchValue] = useState('');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t } = useLanguage();
   const router = useRouter();
+
+  // Set default values using translations
+  const defaultTitle = title || t('dashboard');
+  const defaultSubtitle = subtitle || t('financial_summary');
+  const defaultSearchPlaceholder = searchPlaceholder || t('search');
 
   useEffect(() => {
     getCurrentUser().then(setUser);
@@ -59,15 +67,15 @@ export function Header({
     try {
       await signOut();
       toast({
-        title: 'Berhasil keluar',
-        description: 'Sampai jumpa lagi!',
+        title: t('logout_success'),
+        description: t('logout_goodbye'),
       });
       setTimeout(() => {
         window.location.href = '/';
       }, 1000);
     } catch (error: any) {
       toast({
-        title: 'Gagal keluar',
+        title: t('logout_error'),
         description: error.message,
         variant: 'destructive',
       });
@@ -88,11 +96,11 @@ export function Header({
             {/* Page Title */}
             <div className="hidden sm:block">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {title}
+                {defaultTitle}
               </h1>
-              {subtitle && (
+              {defaultSubtitle && (
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  {subtitle}
+                  {defaultSubtitle}
                 </p>
               )}
             </div>
@@ -102,7 +110,7 @@ export function Header({
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <Input
-                  placeholder={searchPlaceholder}
+                  placeholder={defaultSearchPlaceholder}
                   value={searchValue}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10 h-10 border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-xl transition-all duration-200"
@@ -117,6 +125,9 @@ export function Header({
             {actions && (
               <div className="hidden sm:flex items-center gap-2">{actions}</div>
             )}
+
+            {/* Language Toggle */}
+            <LanguageToggle size="md" />
 
             {/* Theme Toggle */}
             <Button
@@ -203,14 +214,14 @@ export function Header({
                   onClick={() => setIsProfileModalOpen(true)}
                 >
                   <User className="mr-2 h-4 w-4" />
-                  <span>Profil</span>
+                  <span>{t('profile')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => router.push('/settings')}
                 >
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Pengaturan</span>
+                  <span>{t('settings')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
                 <DropdownMenuItem
@@ -218,7 +229,7 @@ export function Header({
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Keluar</span>
+                  <span>{t('logout')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
