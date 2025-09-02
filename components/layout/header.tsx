@@ -16,6 +16,7 @@ import {
 import { signOut, getCurrentUser } from '@/lib/auth';
 import { toast } from '@/hooks/use-toast';
 import { useDarkMode } from '@/lib/dark-mode';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfileModal } from '@/components/modals/profile-modal';
 
 interface HeaderProps {
   title?: string;
@@ -45,7 +47,9 @@ export function Header({
 }: HeaderProps) {
   const [user, setUser] = useState<any>(null);
   const [searchValue, setSearchValue] = useState('');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const router = useRouter();
 
   useEffect(() => {
     getCurrentUser().then(setUser);
@@ -194,11 +198,17 @@ export function Header({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
-                <DropdownMenuItem className="cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <DropdownMenuItem
+                  className="cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => setIsProfileModalOpen(true)}
+                >
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <DropdownMenuItem
+                  className="cursor-pointer text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => router.push('/settings')}
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Pengaturan</span>
                 </DropdownMenuItem>
@@ -215,6 +225,12 @@ export function Header({
           </div>
         </div>
       </div>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </header>
   );
 }
