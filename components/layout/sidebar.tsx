@@ -64,27 +64,6 @@ export function Sidebar() {
     getCurrentUser().then(setUser);
   }, []);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: 'Berhasil keluar',
-        description: 'Sampai jumpa lagi!',
-      });
-
-      // Reload page after successful logout
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000); // Give time for toast to show
-    } catch (error: any) {
-      toast({
-        title: 'Gagal keluar',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
   return (
     <>
       {/* Mobile menu button */}
@@ -186,38 +165,6 @@ export function Sidebar() {
               );
             })}
           </nav>
-
-          {/* User info and logout */}
-          <div className="p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-blue-50/50 dark:from-gray-800 dark:to-gray-700/50">
-            {user && (
-              <div className="mb-4 p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                    {(user.user_metadata?.full_name || user.email)
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {user.user_metadata?.full_name || 'User'}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full bg-white/80 dark:bg-gray-800/80 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 hover:border-red-300 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-300 rounded-xl transition-all duration-200"
-              onClick={handleSignOut}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Keluar
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -345,38 +292,6 @@ export function Sidebar() {
               );
             })}
           </nav>
-
-          {/* User info and logout */}
-          <div className="p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/80">
-            {user && (
-              <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-xl border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                    {(user.user_metadata?.full_name || user.email)
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-base font-semibold text-gray-900 dark:text-white">
-                      {user.user_metadata?.full_name || 'User'}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 hover:border-red-300 dark:hover:border-red-600 hover:text-red-700 dark:hover:text-red-300 rounded-xl transition-all duration-200"
-              onClick={handleSignOut}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Keluar
-            </Button>
-          </div>
         </div>
       </div>
 
