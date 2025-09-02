@@ -20,45 +20,47 @@ import { cn } from '@/lib/utils';
 import { signOut, getCurrentUser } from '@/lib/auth';
 import { toast } from '@/hooks/use-toast';
 import { useDarkMode } from '@/lib/dark-mode';
-
-const navigation = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    description: 'Ringkasan keuangan Anda',
-  },
-  {
-    name: 'Kategori',
-    href: '/categories',
-    icon: Tags,
-    description: 'Kelola kategori transaksi',
-  },
-  {
-    name: 'Keuangan',
-    href: '/finance',
-    icon: Wallet,
-    description: 'Transaksi dan laporan',
-  },
-  {
-    name: 'Grup',
-    href: '/groups',
-    icon: Users,
-    description: 'Kelola grup keuangan',
-  },
-  {
-    name: 'Pengaturan',
-    href: '/settings',
-    icon: Settings,
-    description: 'Konfigurasi aplikasi',
-  },
-];
+import { useLanguage } from '@/lib/language';
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const { isDarkMode } = useDarkMode();
+  const { t } = useLanguage();
+
+  const navigation = [
+    {
+      name: t('dashboard'),
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      description: t('financial_summary'),
+    },
+    {
+      name: t('categories'),
+      href: '/categories',
+      icon: Tags,
+      description: t('manage_categories'),
+    },
+    {
+      name: t('finance'),
+      href: '/finance',
+      icon: Wallet,
+      description: t('transactions_reports'),
+    },
+    {
+      name: t('groups'),
+      href: '/groups',
+      icon: Users,
+      description: t('manage_groups'),
+    },
+    {
+      name: t('settings'),
+      href: '/settings',
+      icon: Settings,
+      description: t('app_config'),
+    },
+  ];
 
   useEffect(() => {
     getCurrentUser().then(setUser);
@@ -101,7 +103,7 @@ export function Sidebar() {
                   Financial App
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Kelola keuangan cerdas
+                  {t('financial_summary')}
                 </p>
               </div>
             </div>
@@ -226,7 +228,7 @@ export function Sidebar() {
                   Financial App
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Menu Navigasi
+                  {t('dashboard')}
                 </p>
               </div>
             </div>
