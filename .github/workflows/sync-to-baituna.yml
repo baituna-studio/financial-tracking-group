@@ -3,7 +3,7 @@ name: Sync Repo to Baituna Studio
 on:
   push:
     branches:
-      - main   # bisa diganti dengan branch lain kalau perlu
+      - master   # bisa diganti dengan branch lain kalau perlu
 
 jobs:
   sync:
@@ -18,4 +18,4 @@ jobs:
       - name: Push to Baituna repo
         run: |
           git remote add baituna https://x-access-token:${{ secrets.B_REPO_TOKEN }}@github.com/baituna-studio/financial-tracking-group.git
-          git push baituna main:main --force
+          git push baituna master:master --force
