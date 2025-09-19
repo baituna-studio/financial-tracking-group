@@ -1,0 +1,21 @@
+name: Sync Repo to Baituna Studio
+
+on:
+  push:
+    branches:
+      - main   # bisa diganti dengan branch lain kalau perlu
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0   # ambil semua history
+
+      - name: Push to Baituna repo
+        run: |
+          git remote add baituna https://x-access-token:${{ secrets.B_REPO_TOKEN }}@github.com/baituna-studio/financial-tracking-group.git
+          git push --mirror baituna
